@@ -1,0 +1,42 @@
+// Etkinlik modülü: tek varlık, `tip` iç / dış katılım / dış konuşmacı (spec).
+// Şimdilik yalnızca iç etkinlik yazılır: onay yok, davet + katılım yanıtı var.
+
+enum EtkinlikTipi {
+  IC
+  DIS_KATILIM
+  DIS_KONUSMACI
+}
+
+enum KatilimYaniti {
+  BEKLIYOR
+  KATILIYORUM
+  KATILMIYORUM
+}
+
+model Etkinlik {
+  id          String            @id @default(cuid())
+  tip         EtkinlikTipi
+  baslik      String
+  aciklama    String?
+  yer         String?
+  baslangic   DateTime
+  bitis       DateTime?
+  olusturanId String
+  olusturma   DateTime
+  davetler    EtkinlikDaveti[]
+
+  @@index([baslangic])
+  @@index([olusturanId])
+}
+
+model EtkinlikDaveti {
+  id          String        @id @default(cuid())
+  etkinlikId  String
+  etkinlik    Etkinlik      @relation(fields: [etkinlikId], references: [id])
+  kullaniciId String
+  yanit       KatilimYaniti @default(BEKLIYOR)
+  yanitZamani DateTime?
+
+  @@unique([etkinlikId, kullaniciId])
+  @@index([kullaniciId, yanit])
+}

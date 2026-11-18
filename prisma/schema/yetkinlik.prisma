@@ -1,0 +1,16 @@
+// Yetkinlik modülü: Çalışan'ın sertifika / eğitim kaydı, isteğe bağlı bitiş tarihiyle.
+
+model Yetkinlik {
+  id                    String    @id @default(cuid())
+  kullaniciId           String
+  ad                    String
+  kurum                 String
+  tarih                 DateTime
+  bitisTarihi           DateTime?
+  olusturma             DateTime
+  // Bitiş hatırlatması gönderildiyse zamanı (bir kez gönderilir).
+  hatirlatmaGonderildi  DateTime?
+
+  @@index([kullaniciId])
+  @@index([bitisTarihi])
+}

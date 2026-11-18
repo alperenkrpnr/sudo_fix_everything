@@ -3,11 +3,19 @@ import { api, getToken, setToken } from './api';
 import { rolAdi } from './format';
 import { GirisSayfasi } from './pages/Giris';
 import { OrganizasyonSayfasi } from './pages/Organizasyon';
+import { EtkinlikSayfasi } from './pages/Etkinlik';
+import { DuyuruSayfasi } from './pages/Duyuru';
+import { YetkinlikSayfasi } from './pages/Yetkinlik';
+import { BildirimSayfasi } from './pages/Bildirimler';
 import type { Profil } from './types';
 
 /** Sayfa kaydı: yeni modül sayfası = bir satır. */
 const SAYFALAR: Array<{ id: string; baslik: string; bilesen: ComponentType<{ ben: Profil }> }> = [
   { id: 'organizasyon', baslik: 'Organizasyon', bilesen: OrganizasyonSayfasi },
+  { id: 'etkinlik', baslik: 'Etkinlikler', bilesen: EtkinlikSayfasi },
+  { id: 'duyuru', baslik: 'Duyurular', bilesen: DuyuruSayfasi },
+  { id: 'yetkinlik', baslik: 'Yetkinlikler', bilesen: YetkinlikSayfasi },
+  { id: 'bildirim', baslik: 'Bildirimler', bilesen: BildirimSayfasi },
 ];
 
 

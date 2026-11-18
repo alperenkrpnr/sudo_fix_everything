@@ -1,0 +1,19 @@
+// Duyuru modülü: hedef kitlesi Ekip, Unit veya Direktörlük olan bilgilendirme.
+
+enum DuyuruHedefTuru {
+  EKIP
+  UNIT
+  DIREKTORLUK
+}
+
+model Duyuru {
+  id           String          @id @default(cuid())
+  baslik       String
+  metin        String
+  hedefTuru    DuyuruHedefTuru
+  hedefId      String
+  yayinlayanId String
+  yayinZamani  DateTime
+
+  @@index([hedefTuru, hedefId])
+}
