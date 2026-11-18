@@ -117,6 +117,75 @@ describe('Rapor: rol kapsamı ve sayılar', () => {
     expect(r.blokSuresi).toEqual({ adet: 2, ortSaat: 4 });
   });
 
+  it('Çalışan taşınınca geçmiş Task ve retleri eski Ekip\'te kalır; tarih aralığı taşıma öncesini verir (ADR-0002)', async () => {
+    const [waf1, waf2, soc2] = [kullanici(F.waf1), kullanici(F.waf2), kullanici(F.soc2)];
+    // Taşıma öncesi: WAF içinde iki Task (biri reddedildi, biri tamamlandı)
+    t.now = d('03-03T09:00:00');
+    const r1 = await t.services.task.olustur(waf2, { baslik: 'R1', assigneeKullaniciId: F.waf1 });
+    const k1 = await t.services.task.olustur(waf2, { baslik: 'K1', assigneeKullaniciId: F.waf1 });
+    t.now = d('03-03T11:00:00');
+    await t.services.kabul.reddet(waf1, r1.id, 'Kapsam dışı');
+    await t.services.kabul.kabulEt(waf1, k1.id);
+    t.now = d('03-03T15:00:00');
+    await t.services.task.durumDegistir(waf1, k1.id, { durum: 'TAMAMLANDI' });
+    // Taşıma: WAF → SOC
+    t.now = d('03-04T09:00:00');
+    await t.services.organizasyon.calisanTasi(kullanici(F.thCoklu), { kullaniciId: F.waf1, eskiEkipId: F.ekipWaf, yeniEkipId: F.ekipSoc });
+    // Taşıma sonrası: SOC içinde bir Task, reddedildi
+    t.now = d('03-05T09:00:00');
+    const r2 = await t.services.task.olustur(soc2, { baslik: 'R2', assigneeKullaniciId: F.waf1 });
+    t.now = d('03-05T10:00:00');
+    await t.services.kabul.reddet(waf1, r2.id, 'Yoğunluk');
+    t.now = d('03-06T09:00:00');
+
+    const aralik = { baslangic: d('03-03T00:00:00') };
+    const r = await t.services.rapor.ozet(kullanici(F.direktor), aralik);
+    const ekip = (id: string) => r.ekipler!.find((e) => e.ekipId === id)!;
+    expect(ekip(F.ekipWaf)).toMatchObject({ toplam: 2, tamamlanan: 1, kapali: 2, ortCozumSaat: 6 });
+    expect(ekip(F.ekipSoc)).toMatchObject({ toplam: 1, kapali: 1 });
+    expect(r.retRaporu!.akis).toEqual(
+      expect.arrayContaining([
+        { kaynakEkipId: F.ekipWaf, hedefEkipId: F.ekipWaf, adet: 1 },
+        { kaynakEkipId: F.ekipSoc, hedefEkipId: F.ekipSoc, adet: 1 },
+      ]),
+    );
+    // WAF filtresi taşınmış Çalışanın eski işlerini hâlâ sayar
+    const waf = await t.services.rapor.ozet(kullanici(F.thCoklu), { ...aralik, ekipId: F.ekipWaf });
+    expect(waf.calisanlar!.map((c) => [c.kullaniciId, c.toplam])).toEqual([[F.waf1, 2]]);
+    // Taşıma öncesi aralık: yalnızca WAF ve WAF→WAF ret akışı
+    const once = await t.services.rapor.ozet(kullanici(F.direktor), { ...aralik, bitis: d('03-03T23:59:59') });
+    expect(once.genel.toplam).toBe(2);
+    expect(once.retRaporu).toMatchObject({ retOrani: 0.5, akis: [{ kaynakEkipId: F.ekipWaf, hedefEkipId: F.ekipWaf, adet: 1 }] });
+  });
+
+  it('Geçmiş aralık raporu aralık sonundaki duruma göre hesaplanır; sonraki olaylar onu değiştirmez', async () => {
+    const osint = kullanici(F.osint1);
+    t.now = d('03-02T09:00:00');
+    const a = await t.services.task.olustur(kullanici(F.uhIstihbarat), { baslik: 'A', assigneeKullaniciId: F.osint1, bitisTarihi: d('03-02T12:00:00') });
+    const b = await t.services.task.olustur(kullanici(F.cti1), { baslik: 'B', assigneeKullaniciId: F.osint1 }); // ASSIGNEE → SORUMLU
+    t.now = d('03-02T10:00:00');
+    await t.services.task.durumDegistir(osint, a.id, { durum: 'DEVAM_EDIYOR' });
+    t.now = d('03-02T20:00:00');
+    await t.services.task.durumDegistir(osint, a.id, { durum: 'BLOKLU', neden: 'Erişim' });
+    // Aralık bittikten sonra: blok kalkar, tamamlanır; B reddedilir
+    t.now = d('03-04T09:00:00');
+    await t.services.task.durumDegistir(osint, a.id, { durum: 'TAMAMLANDI' });
+    await t.services.kabul.reddet(osint, b.id, 'Kapsam dışı');
+    t.now = d('03-06T09:00:00');
+
+    const r = await t.services.rapor.ozet(kullanici(F.direktor), { baslangic: d('03-02T00:00:00'), bitis: d('03-02T23:59:59.999') });
+    expect(r.genel).toEqual({ toplam: 2, acik: 2, kapali: 0, tamamlanan: 0, geciken: 1, ortCozumSaat: null });
+    expect(r.blokSuresi).toEqual({ adet: 1, ortSaat: 4 });
+    expect(r.kabulBekleme).toEqual({ adet: 0, ortSaat: null });
+    expect(r.retRaporu).toEqual({ retOrani: 0, gerekceler: [], akis: [] });
+  });
+
+  it('Sonradan arşivlenen Ekip geçmiş Task\'larıyla Ekip performansında kalır', async () => {
+    await t.db.ekip.update({ where: { id: F.ekipPentest }, data: { arsivlendi: t.now } }); // geçmiş yapı düzenlemesi
+    const r = await t.services.rapor.ozet(kullanici(F.direktor));
+    expect(r.ekipler!.find((e) => e.ekipId === F.ekipPentest)).toMatchObject({ kod: 'TEAM-PENTEST', toplam: 1, geciken: 1 });
+  });
+
   it('Dev demo verisi rapora girer', async () => {
     await seedRaporDemo(t.db, t.now);
     expect((await t.services.rapor.ozet(kullanici(F.direktor))).genel.toplam).toBe(19);

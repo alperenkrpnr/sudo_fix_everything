@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/server/dev.ts",
+    "mcp": "tsx src/server/mcp/stdio.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "pretypecheck": "npm run db:generate --silent",
@@ -13,11 +14,13 @@
     "postinstall": "npm run db:generate"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@prisma/adapter-pg": "6.19.3",
     "@prisma/client": "6.19.3",
     "express": "5.1.0",
     "react": "19.1.10",
-    "react-dom": "19.1.10"
+    "react-dom": "19.1.10",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/express": "5.0.3",

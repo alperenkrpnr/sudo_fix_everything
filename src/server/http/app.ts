@@ -10,6 +10,7 @@ import { etkinlikRouter } from './etkinlik';
 import { organizasyonRouter } from './organizasyon';
 import { kabulRouter } from './kabul';
 import { dashboardRouter } from './dashboard';
+import { ajanTokenRouter } from './ajan-token';
 
 const HTTP_KODU: Record<string, number> = { KIMLIK: 401, YETKI: 403, BULUNAMADI: 404, DOGRULAMA: 400 };
 
@@ -21,9 +22,10 @@ export function handler(
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const token = req.header('authorization')?.replace(/^Bearer\s+/i, '');
       const actor = opts.public
         ? (null as unknown as Actor)
-        : services.oturum.tokenCoz(req.header('authorization')?.replace(/^Bearer\s+/i, ''));
+        : ((await services.ajanToken.tokenCoz(token)) ?? services.oturum.tokenCoz(token));
       res.json(await fn(req, actor));
     } catch (err) {
       next(err);
@@ -52,6 +54,7 @@ export function createApp(services: Services) {
   app.use('/api', etkinlikRouter(services));
   app.use('/api/kabul', kabulRouter(services));
   app.use('/api', dashboardRouter(services));
+  app.use('/api/ajan-tokenlari', ajanTokenRouter(services));
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const kod = (err as { kod?: string })?.kod;

@@ -5,17 +5,22 @@ import type { Tx } from '../../db/client';
 const SAAT = 3_600_000;
 const yuvarla = (x: number) => Math.round(x * 10) / 10;
 
-async function onayAdimlari(tx: Tx, taskIds: string[]) {
+/**
+ * Onay adımları `ref` anı itibarıyla: yalnızca o ana kadar başlamış adımlar; o andan sonra verilmiş
+ * kararlar BEKLIYOR sayılır (geçmiş aralığın raporu sonradan değişmez).
+ */
+async function onayAdimlari(tx: Tx, taskIds: string[], ref: Date) {
   if (!taskIds.length) return [];
-  return tx.kabulAdimi.findMany({ where: { taskId: { in: taskIds }, tur: { not: 'DIREKT' } } });
+  const adimlar = await tx.kabulAdimi.findMany({ where: { taskId: { in: taskIds }, tur: { not: 'DIREKT' }, baslangic: { lte: ref } } });
+  return adimlar.map((a) => (a.kararZamani && a.kararZamani > ref ? { ...a, karar: 'BEKLIYOR' as const, kararZamani: null } : a));
 }
 
 /**
  * Kabul bekleme süresi: karar verilmiş (KABUL/RET) her onay adımı için kararZamani − baslangic.
  * `adet` = karar verilmiş adım sayısı, `ortSaat` = ortalama (saat, 1 ondalık). Zincir kaydı yoksa null.
  */
-export async function kabulBeklemeSureleri(tx: Tx, taskIds: string[]): Promise<{ adet: number; ortSaat: number | null } | null> {
-  const adimlar = await onayAdimlari(tx, taskIds);
+export async function kabulBeklemeSureleri(tx: Tx, taskIds: string[], ref: Date): Promise<{ adet: number; ortSaat: number | null } | null> {
+  const adimlar = await onayAdimlari(tx, taskIds, ref);
   if (!adimlar.length) return null;
   const sureler = adimlar
     .filter((a) => (a.karar === 'KABUL' || a.karar === 'RET') && a.baslangic && a.kararZamani)
@@ -28,8 +33,8 @@ export async function kabulBeklemeSureleri(tx: Tx, taskIds: string[]): Promise<{
  * gerekceler: ret kararlarının gerekçe dağılımı (çoktan aza). akis: Requester Ekibi → reddeden Ekip.
  * Zincir kaydı yoksa null.
  */
-export async function retRaporuHesapla(tx: Tx, taskIds: string[]) {
-  const adimlar = await onayAdimlari(tx, taskIds);
+export async function retRaporuHesapla(tx: Tx, taskIds: string[], ref: Date) {
+  const adimlar = await onayAdimlari(tx, taskIds, ref);
   if (!adimlar.length) return null;
   const retler = adimlar.filter((a) => a.karar === 'RET');
   const zincirli = new Set(adimlar.map((a) => a.taskId)).size;
