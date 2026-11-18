@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issue ve spec'ler yerel Markdown dosyası olarak `.scratch/<feature>/` altında tutulur. See `docs/agents/issue-tracker.md`.
+Issue ve spec'ler yerel Markdown dosyası olarak `docs/<feature>/` altında tutulur. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

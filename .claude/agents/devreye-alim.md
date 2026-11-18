@@ -15,7 +15,7 @@ The prompt may name a mode; with none, run `tam`.
 
 ## Reports
 
-Directory: `.scratch/devreye-alim/<YYYY-MM-DD>/` under your working directory (date from `date +%F`). Files: `guvenlik.md`, `kod.md`, `ux.md`, `karar.md`. When running in an isolated worktree, report the absolute path of the file you wrote; the caller collects it into the main checkout before `karar`.
+Directory: `docs/devreye-alim/<YYYY-MM-DD>/` under your working directory (date from `date +%F`). Files: `guvenlik.md`, `kod.md`, `ux.md`, `karar.md`. When running in an isolated worktree, report the absolute path of the file you wrote; the caller collects it into the main checkout before `karar`.
 
 ## Running a check
 

@@ -29,7 +29,7 @@ Done when every changed file has met every rule and every reported finding carri
 - Service code reads time from `kimlik.zaman` / `ctx.now()`. A bare `new Date()` breaks the test clock and historical resolution.
 - Resolution helpers in `yetki/cozumleme.ts` take a time `t`. Reports must resolve the structure at event time; the `rapor` module has an open TODO here, so flag new code that deepens it.
 
-### Domain (`.scratch/*/spec.md`, `GLOSSARY.md`)
+### Domain (`docs/*/spec.md`, `GLOSSARY.md`)
 - Behaviour matches the spec sections "Kabul zinciri kuralları", "Durum makinesi" and "Görünürlük".
 - Guard rails hold: ret gerekçesi required, Bloklu reason required, no start while `KABUL_BEKLIYOR`, Requester only cancels, a refused Task is kept.
 - Identifiers and UI text use GLOSSARY terms; a term listed under _Avoid_ is a finding.
