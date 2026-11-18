@@ -7,7 +7,7 @@ import { UygulamaBaglami, useOrtakVeri, useUygulama, type Uygulama } from './uyg
 import { BildirimPaneli } from './pages/Bildirimler';
 import { GirisSayfasi } from './pages/Giris';
 import { GenelBakisSayfasi } from './pages/GenelBakis';
-import { OnayKutusuSayfasi } from './pages/OnayKutusu';
+import { GOSTERILEN_BEKLEYEN, OnayKutusuSayfasi } from './pages/OnayKutusu';
 import { TaskPanosuSayfasi } from './pages/TaskPanosu';
 import { EtkinlikSayfasi } from './pages/Etkinlik';
 import { RaporSayfasi } from './pages/Rapor';
@@ -189,7 +189,7 @@ function Kabuk({ ben, girisYap, onCikis }: { ben: Profil; girisYap: (id: string)
   }, []);
 
   const reddedilenlerim = (ortak.tasklar ?? []).filter((t) => t.durum === 'REDDEDILDI' && t.requesterId === ben.id).length;
-  const onaySayisi = (ortak.bekleyen?.length ?? 0) + reddedilenlerim;
+  const onaySayisi = (ortak.bekleyen ?? []).filter((b) => GOSTERILEN_BEKLEYEN.has(b.tur)).length + reddedilenlerim;
   const okunmamis = ortak.bildirimler.some((b) => !b.okundu);
   const aktifSayfa = SAYFALAR.find((s) => s.id === sayfa)!;
   const Aktif = aktifSayfa.bilesen;

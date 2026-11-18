@@ -14,6 +14,12 @@ export interface KabulOgesi {
   zincir: KabulZinciri | undefined;
 }
 
+/**
+ * Onay kutusunda kartı olan bekleyen iş türleri. Rozet sayısı da yalnızca bunları sayar; yeni bir tür
+ * (ör. DELEGASYON, EKIP_HAVUZU) için kart grubu eklerken buraya da ekleyin.
+ */
+export const GOSTERILEN_BEKLEYEN: ReadonlySet<BekleyenIs['tur']> = new Set(['TASK_KABUL', 'ETKINLIK_DAVETI']);
+
 /** Onay kutusunun verisi (Genel Bakış da kullanır). */
 export function useOnayOgeleri() {
   const u = useUygulama();
