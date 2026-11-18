@@ -46,6 +46,16 @@ describe('web adaptörü', () => {
     expect((await fetch(`${base}/api/tasks/${task.id}`, { headers: { authorization: `Bearer mock:${F.soc1}` } })).status).toBe(404);
   });
 
+  it('Task durum değişikliği ve tarihçe servis katmanına yönlenir', async () => {
+    const auth = { authorization: `Bearer mock:${F.thCoklu}`, 'content-type': 'application/json' };
+    const task = await (await fetch(`${base}/api/tasks`, { method: 'POST', headers: auth, body: JSON.stringify({ baslik: 'D', assigneeKullaniciId: F.soc1 }) })).json();
+    const durum = (body: object) => fetch(`${base}/api/tasks/${task.id}/durum`, { method: 'POST', headers: auth, body: JSON.stringify(body) });
+    expect((await durum({ durum: 'BLOKLU' })).status).toBe(400);
+    expect((await durum({ durum: 'BLOKLU', neden: 'Erişim' })).status).toBe(200);
+    const g = await (await fetch(`${base}/api/tasks/${task.id}/gecmis`, { headers: auth })).json();
+    expect(g.gecisler).toMatchObject([{ yeni: 'BLOKLU', neden: 'Erişim' }]);
+  });
+
   it('token olmadan 401, yetkisiz işlemde 403 döner', async () => {
     expect((await fetch(`${base}/api/organizasyon`)).status).toBe(401);
     const res = await fetch(`${base}/api/denetim`, { headers: { authorization: `Bearer mock:${F.waf1}` } });

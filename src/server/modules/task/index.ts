@@ -5,6 +5,7 @@ import type { Actor } from '../../core/actor';
 import type { ServiceContext } from '../../core/context';
 import { BulunamadiHatasi, DogrulamaHatasi, YetkiHatasi } from '../../core/errors';
 import type { Tx } from '../../db/client';
+import { taskDurumIslemleri } from './durum';
 import { aktif, direktKabulMu, oku, taskGorunurluk, uyeOlduguEkipler, yaz, type TaskAtamaHedefi } from '../yetki';
 
 export type { TaskDurum, TaskOncelik };
@@ -52,6 +53,7 @@ async function hedefCoz(tx: Tx, requesterId: string, g: TaskGirdisi, t: Date): P
 
 export function taskServisi(ctx: ServiceContext) {
   return {
+    ...taskDurumIslemleri(ctx), // ticket 04: durumDegistir, durumGecmisi
     /** Task açar. Durum: Taslak, direkt kabulde Kabul Edildi, aksi halde Kabul Bekliyor. */
     olustur(actor: Actor, g: TaskGirdisi): Promise<TaskGorunumu> {
       return yaz(ctx, actor, 'task.olustur', async (kimlik, tx) => {
