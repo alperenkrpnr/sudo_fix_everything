@@ -19,3 +19,5 @@
 ## Comments
 
 - 2026-11-18: Partly built on `feat/dashboard-gelistirme`. Done: open/closed per Ekip and Çalışan, average resolution time, kabul bekleme süresi, blok süresi, Ekip performance, overdue count, ret raporu, role scope, Çalışan ranking only for managers, Unit/Ekip filter. Open: date-range filter, computing reports with the org structure at the event date (ADR-0002, TODO in the rapor module).
+
+- 2026-11-18: Backend built on `feat/dashboard-gelistirme` (service, seam tests, REST, dev seed). UI pending: it will be added in the SecOpsGrid design. Done this round: date-range filter, reports computed with the structure at event time. Deferred: Ekip→Unit link is not date-ranged, so the Unit filter uses today's Unit.

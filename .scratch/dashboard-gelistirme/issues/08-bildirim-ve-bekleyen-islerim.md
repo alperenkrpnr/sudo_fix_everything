@@ -16,3 +16,5 @@
 ## Comments
 
 - 2026-11-18: Partly built on `feat/dashboard-gelistirme`. Done: the minimal in-app notification module (from ticket 10) and the Bekleyen işlerim page (Task acceptances plus Etkinlik invites, sorted by due date then age). Open: per-user notification preferences, due-date-approaching/overdue notifications.
+
+- 2026-11-18: Backend built on `feat/dashboard-gelistirme` (service, seam tests, REST, dev seed). UI pending: it will be added in the SecOpsGrid design. Done this round: notification preferences per user and type, termin yaklaşma/geçme notifications (run on dev start, no scheduler).

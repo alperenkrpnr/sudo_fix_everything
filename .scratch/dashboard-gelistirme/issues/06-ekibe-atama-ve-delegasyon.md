@@ -12,3 +12,7 @@
 - [ ] Çok Ekipli yönetici birleşik gelen kutusunda Ekip etiketi ve filtresi görür
 - [ ] Direktör'ün Ekip'e ataması direkt Ekip'e düşer
 - [ ] Delegasyon ve havuza dönüş denetim izine yazılır
+
+## Comments
+
+- 2026-11-18: Backend built on `feat/dashboard-gelistirme` (service, seam tests, REST, dev seed). UI pending: it will be added in the SecOpsGrid design. Deferred: one-step accept+delegate, handing a Task back after accepting a delegation, delegation decisions in the reports.
