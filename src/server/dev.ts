@@ -8,6 +8,7 @@ import { ROOT, adminQuery, applySchema, createDatabase, startPostgres } from './
 import { createApp } from './http/app';
 import { seedFixture } from './seed/fixture';
 import { seedTaskDemo } from './seed/task-demo';
+import { seedEtkinlikDemo } from './seed/demo-etkinlik';
 import { createServices } from './services';
 
 const DB_NAME = 'siber_task';
@@ -24,6 +25,7 @@ await seedFixture(db);
 await seedTaskDemo(db);
 
 const services = createServices({ db });
+await seedEtkinlikDemo(services);
 const app = express();
 app.use(createApp(services));
 const vite = await createViteServer({ configFile: path.join(ROOT, 'vite.config.ts'), server: { middlewareMode: true } });

@@ -6,6 +6,10 @@ import { denetimServisi } from './modules/denetim';
 import { organizasyonServisi } from './modules/organizasyon';
 import { oturumServisi } from './modules/oturum';
 import { taskServisi } from './modules/task';
+import { bildirimServisi } from './modules/bildirim';
+import { etkinlikServisi } from './modules/etkinlik';
+import { duyuruServisi } from './modules/duyuru';
+import { yetkinlikServisi } from './modules/yetkinlik';
 
 export function createServices(opts: { db: Db; now?: () => Date; config?: Partial<Config> }) {
   const ctx: ServiceContext = {
@@ -19,6 +23,10 @@ export function createServices(opts: { db: Db; now?: () => Date; config?: Partia
     oturum: oturumServisi(ctx),
     denetim: denetimServisi(ctx),
     task: taskServisi(ctx),
+    bildirim: bildirimServisi(ctx),
+    etkinlik: etkinlikServisi(ctx),
+    duyuru: duyuruServisi(ctx),
+    yetkinlik: yetkinlikServisi(ctx),
   };
 }
 

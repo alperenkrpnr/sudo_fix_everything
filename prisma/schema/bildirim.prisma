@@ -1,0 +1,16 @@
+// Bildirim modülü: uygulama içi bildirim. Diğer modüller kendi yazma transaction'ı
+// içinde `bildirimGonder(tx, ...)` ile oluşturur. Tercihler (ticket 08) henüz yok.
+
+model Bildirim {
+  id          String    @id @default(cuid())
+  kullaniciId String
+  // ETKINLIK_DAVETI, DUYURU, YETKINLIK_BITIS, TASK_ATAMA, KABUL, RET ...
+  tur         String
+  mesaj       String
+  varlikTuru  String?
+  varlikId    String?
+  olusturma   DateTime
+  okundu      DateTime?
+
+  @@index([kullaniciId, olusturma])
+}
