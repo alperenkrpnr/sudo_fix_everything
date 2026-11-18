@@ -1,0 +1,727 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Siber Task — Hedef Mimari ve Genel Akış",
+    "output": ".archify/architecture-siber-task-20261118-151841/siber-task-mimari.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://local.invalid/TCANBAS/AI_Hackathon.git",
+      "link_mode": "local-only",
+      "revision": "1578c165e9ba334d5f3dabc905801f411745158c"
+    },
+    "views": [
+      {
+        "id": "task-akisi",
+        "label": "Task kabul akışı",
+        "focus": [
+          "kullanici",
+          "web",
+          "rest",
+          "yetki",
+          "task",
+          "kabul",
+          "eskalasyon",
+          "bildirim"
+        ],
+        "note": "Task açılır, yetki katmanı kuralları uygular, kabul motoru zinciri üretir; süre aşımı eskalasyona, sonuç bildirime gider."
+      },
+      {
+        "id": "ajan-erisimi",
+        "label": "AI ajan erişimi",
+        "focus": [
+          "ajan",
+          "mcp",
+          "rest",
+          "oturum",
+          "yetki",
+          "denetim"
+        ],
+        "note": "Ajan kullanıcı adına token ile gelir; aynı yetki katmanından geçer, varsayılan salt okunurdur ve her işlemi denetime yazılır."
+      },
+      {
+        "id": "veri-denetim",
+        "label": "Veri ve denetim izi",
+        "focus": [
+          "yetki",
+          "veri",
+          "denetim",
+          "org",
+          "rapor"
+        ],
+        "note": "Her yazma tek transaction içinde denetim kaydıyla birlikte işlenir; yapı tarihli tutulur, raporlar olay tarihine göre hesaplanır."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "ajan",
+      "type": "external",
+      "label": "AI Ajanı",
+      "sublabel": "kullanıcı adına token",
+      "pos": [
+        770,
+        40
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 162,
+          "label": "API ve MCP kararı"
+        }
+      ]
+    },
+    {
+      "id": "kullanici",
+      "type": "external",
+      "label": "Kullanıcı",
+      "sublabel": "Çalışan / TH / UH / Direktör",
+      "pos": [
+        40,
+        170
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 9,
+          "label": "Hiyerarşi"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Web Arayüzü",
+      "sublabel": "React 19 + Vite",
+      "pos": [
+        255,
+        170
+      ],
+      "size": [
+        145,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 163,
+          "label": "Teknoloji"
+        },
+        {
+          "path": "src/web/api.ts",
+          "line": 21,
+          "end_line": 30,
+          "label": "Bearer ile /api çağrısı"
+        }
+      ]
+    },
+    {
+      "id": "rest",
+      "type": "backend",
+      "label": "REST API",
+      "sublabel": "Express 5 · ince adaptör",
+      "pos": [
+        510,
+        170
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/server/http/app.ts",
+          "line": 13,
+          "end_line": 29,
+          "label": "token → Actor → servis"
+        },
+        {
+          "path": "src/server/http/app.ts",
+          "line": 31,
+          "end_line": 48,
+          "label": "route bağlama"
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 143
+        }
+      ]
+    },
+    {
+      "id": "oturum",
+      "type": "security",
+      "label": "Oturum / Kimlik",
+      "sublabel": "mock → Entra ID/OIDC",
+      "pos": [
+        770,
+        170
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/server/modules/oturum/index.ts",
+          "line": 1,
+          "end_line": 26,
+          "label": "mock token çözümü"
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 164,
+          "label": "Kimlik kararı"
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "type": "backend",
+      "label": "MCP Sunucusu",
+      "sublabel": "resmi TS SDK · ince adaptör",
+      "tag": "planlı",
+      "pos": [
+        1010,
+        170
+      ],
+      "size": [
+        155,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 162,
+          "label": "MCP ve token kapsamı"
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/issues/13-rest-api-ve-mcp-task.md",
+          "label": "ticket 13"
+        }
+      ]
+    },
+    {
+      "id": "yetki",
+      "type": "security",
+      "label": "Yetki Servis Katmanı",
+      "sublabel": "oku / yaz · görünürlük · Sorumlu/Üst yönetici · Vekil · ajan kapsamı",
+      "tag": "ADR-0001 · tek giriş",
+      "pos": [
+        310,
+        320
+      ],
+      "size": [
+        855,
+        200
+      ],
+      "sources": [
+        {
+          "path": "src/server/modules/yetki/index.ts",
+          "line": 37,
+          "end_line": 79,
+          "label": "ajan kapsamı, oku/yaz, tx"
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 135,
+          "label": "Yetki katmanı kararı"
+        },
+        {
+          "path": "docs/adr/0001-tek-yetki-servis-katmani.md",
+          "line": 1,
+          "end_line": 8
+        }
+      ]
+    },
+    {
+      "id": "veri",
+      "type": "database",
+      "label": "Domain Tabloları",
+      "sublabel": "Prisma · tarihli yapı",
+      "pos": [
+        40,
+        330
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/server/modules/yetki/index.ts",
+          "line": 65,
+          "end_line": 79,
+          "label": "yaz: tek $transaction"
+        },
+        {
+          "path": "prisma/schema/organizasyon.prisma",
+          "line": 46,
+          "end_line": 57,
+          "label": "tarihli Uyelik"
+        }
+      ]
+    },
+    {
+      "id": "denetim",
+      "type": "database",
+      "label": "Denetim İzi",
+      "sublabel": "DenetimKaydi · append-only",
+      "tag": "5 yıl saklama",
+      "pos": [
+        40,
+        450
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/server/modules/denetim/kaydet.ts",
+          "line": 17,
+          "end_line": 20,
+          "label": "tek yazma yolu"
+        },
+        {
+          "path": "prisma/sql/denetim.sql",
+          "line": 1,
+          "end_line": 19,
+          "label": "silme/değiştirme trigger"
+        },
+        {
+          "path": "docs/adr/0002-eklemeli-denetim-izi-ve-tarihsel-yapi.md",
+          "line": 1,
+          "end_line": 8
+        }
+      ]
+    },
+    {
+      "id": "org",
+      "type": "backend",
+      "label": "Organizasyon",
+      "sublabel": "Unit · Ekip · roller",
+      "pos": [
+        320,
+        600
+      ],
+      "size": [
+        140,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 134
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 158,
+          "end_line": 159,
+          "label": "taşıma ve rol kuralları"
+        },
+        {
+          "path": "src/server/modules/organizasyon/index.ts",
+          "line": 54
+        }
+      ]
+    },
+    {
+      "id": "task",
+      "type": "backend",
+      "label": "Task",
+      "sublabel": "durum makinesi · alt task",
+      "pos": [
+        490,
+        600
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 153,
+          "label": "Durum makinesi"
+        },
+        {
+          "path": "src/server/modules/task/index.ts",
+          "line": 54,
+          "end_line": 59,
+          "label": "olustur → yaz"
+        },
+        {
+          "path": "src/server/modules/yetki/task.ts",
+          "line": 8,
+          "end_line": 21,
+          "label": "direkt kabul seam'i"
+        }
+      ]
+    },
+    {
+      "id": "etkinlik",
+      "type": "backend",
+      "label": "Etkinlik · Yetkinlik · Duyuru",
+      "sublabel": "iç / dış katılım / konuşmacı",
+      "pos": [
+        685,
+        600
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 138
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 156,
+          "label": "Etkinlik onayı"
+        },
+        {
+          "path": "src/server/modules/etkinlik/index.ts",
+          "line": 1,
+          "end_line": 3,
+          "label": "şimdilik iç etkinlik"
+        }
+      ]
+    },
+    {
+      "id": "bekleyen",
+      "type": "backend",
+      "label": "Bekleyen İşlerim",
+      "sublabel": "birleşik onay kutusu",
+      "tag": "planlı",
+      "pos": [
+        905,
+        600
+      ],
+      "size": [
+        130,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 139
+        }
+      ]
+    },
+    {
+      "id": "rapor",
+      "type": "backend",
+      "label": "Raporlama",
+      "sublabel": "olay tarihli yapı",
+      "tag": "planlı",
+      "pos": [
+        1055,
+        600
+      ],
+      "size": [
+        110,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 140
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 160,
+          "label": "Rapor içerikleri"
+        }
+      ]
+    },
+    {
+      "id": "eskalasyon",
+      "type": "backend",
+      "icon": "clock",
+      "label": "Eskalasyon",
+      "sublabel": "Task + Etkinlik sayacı",
+      "tag": "planlı",
+      "pos": [
+        265,
+        750
+      ],
+      "size": [
+        140,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 156,
+          "label": "3 iş günü, 1 gün önce kuralı"
+        },
+        {
+          "path": "src/server/core/context.ts",
+          "line": 3,
+          "end_line": 13,
+          "label": "eskalasyonIsGunu: 3"
+        }
+      ]
+    },
+    {
+      "id": "kabul",
+      "type": "backend",
+      "label": "Kabul Akışı Motoru",
+      "sublabel": "onay zinciri · delegasyon",
+      "tag": "planlı",
+      "pos": [
+        490,
+        750
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 136
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 144,
+          "end_line": 152,
+          "label": "Kabul zinciri kuralları"
+        },
+        {
+          "path": ".scratch/dashboard-gelistirme/issues/05-accept-refuse-zinciri.md",
+          "label": "ticket 05"
+        }
+      ]
+    },
+    {
+      "id": "bildirim",
+      "type": "messagebus",
+      "label": "Bildirim",
+      "sublabel": "uygulama içi",
+      "pos": [
+        735,
+        750
+      ],
+      "size": [
+        100,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".scratch/dashboard-gelistirme/spec.md",
+          "line": 161,
+          "label": "Bildirim olayları"
+        },
+        {
+          "path": "src/server/modules/bildirim/index.ts",
+          "line": 21,
+          "end_line": 36,
+          "label": "çağıranın tx'inde yazar"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "PostgreSQL · Prisma",
+      "wraps": [
+        "veri",
+        "denetim"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "kullanici-web",
+      "from": "kullanici",
+      "to": "web",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "web-rest",
+      "from": "web",
+      "to": "rest",
+      "label": "JSON + Bearer",
+      "variant": "emphasis"
+    },
+    {
+      "id": "rest-oturum",
+      "from": "rest",
+      "to": "oturum",
+      "label": "token → Actor",
+      "variant": "security"
+    },
+    {
+      "id": "mcp-oturum",
+      "from": "mcp",
+      "to": "oturum",
+      "label": "ajan token",
+      "variant": "security"
+    },
+    {
+      "id": "ajan-rest",
+      "from": "ajan",
+      "to": "rest",
+      "label": "REST"
+    },
+    {
+      "id": "ajan-mcp",
+      "from": "ajan",
+      "to": "mcp",
+      "label": "MCP tools"
+    },
+    {
+      "id": "rest-yetki",
+      "from": "rest",
+      "to": "yetki",
+      "label": "Actor + işlem",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mcp-yetki",
+      "from": "mcp",
+      "to": "yetki",
+      "label": "varsayılan salt okunur",
+      "variant": "security"
+    },
+    {
+      "id": "yetki-veri",
+      "from": "yetki",
+      "to": "veri",
+      "label": "tek transaction"
+    },
+    {
+      "id": "yetki-denetim",
+      "from": "yetki",
+      "to": "denetim",
+      "label": "yazma + ajan",
+      "variant": "security"
+    },
+    {
+      "id": "yetki-org",
+      "from": "yetki",
+      "to": "org"
+    },
+    {
+      "id": "yetki-task",
+      "from": "yetki",
+      "to": "task",
+      "label": "yetkili işlem",
+      "variant": "emphasis"
+    },
+    {
+      "id": "yetki-etkinlik",
+      "from": "yetki",
+      "to": "etkinlik"
+    },
+    {
+      "id": "yetki-bekleyen",
+      "from": "yetki",
+      "to": "bekleyen"
+    },
+    {
+      "id": "yetki-rapor",
+      "from": "yetki",
+      "to": "rapor"
+    },
+    {
+      "id": "task-kabul",
+      "from": "task",
+      "to": "kabul",
+      "label": "zincir üret",
+      "variant": "emphasis"
+    },
+    {
+      "id": "eskalasyon-kabul",
+      "from": "eskalasyon",
+      "to": "kabul",
+      "label": "3 iş günü",
+      "variant": "dashed"
+    },
+    {
+      "id": "kabul-bildirim",
+      "from": "kabul",
+      "to": "bildirim",
+      "label": "kabul / ret"
+    },
+    {
+      "id": "etkinlik-bildirim",
+      "from": "etkinlik",
+      "to": "bildirim",
+      "label": "davet · duyuru"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Ana akış: Task",
+      "items": [
+        "Kullanıcı Web'den Task açar; REST Bearer token'ı Actor'a çevirir",
+        "Yetki katmanı rolü, görünürlüğü ve Sorumlu yöneticiyi olay anındaki yapıya göre çözer",
+        "Direkt kabul ise Kabul Edildi; değilse Kabul Bekliyor ve kabul motoru zinciri üretir",
+        "Kabul/ret ve eskalasyon Bildirim'e, bekleyen onaylar Bekleyen İşlerim'e düşer"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Kabul zinciri kuralları",
+      "items": [
+        "Self-assign, Yönetici → kendi Çalışanı, Unit Head → kendi Unit'i, Direktör → herkes: direkt kabul",
+        "Başka Ekip'e: önce Çalışan, sonra onun Sorumlu yöneticisi kabul eder",
+        "Ekip'e atama Sorumlu yöneticiye düşer (Team Head yoksa Unit Head) ve delege edilir",
+        "Herhangi bir halka ret → Reddedildi (gerekçe zorunlu); delegasyon reddi → Ekip havuzu"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Durum makinesi",
+      "items": [
+        "Taslak → Kabul Bekliyor → Kabul Edildi → Devam Ediyor ⇄ Bloklu → Tamamlandı; ayrıca Reddedildi, İptal",
+        "Kabul Bekliyor'da işe başlanamaz; Bloklu için neden zorunlu",
+        "Durumu Assignee ve Üst yöneticiler değiştirir; Requester yalnızca iptal eder",
+        "Kabul bekleme süresi ve blok süresi ayrı ölçülür"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Ajan ve güvenlik",
+      "items": [
+        "REST ve MCP iş kuralı içermez; ikisi de aynı yetki katmanını çağırır",
+        "Ajan token'ı kullanıcı adına çalışır; okuma ve yazma kapsamı ayrı, yazma varsayılan kapalı",
+        "Ajanın okumaları da denetim izine işaretli yazılır",
+        "Vekil kendi ilişkili talebini onaylayamaz; kayıt \"X adına Y tarafından\" tutulur"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Veri ve tarihsel yapı (ADR-0002)",
+      "items": [
+        "Her yazma, denetim kaydıyla aynı transaction içinde işlenir",
+        "DenetimKaydi trigger ile yalnızca eklenir; silme yok, arşivleme, 5 yıl saklama",
+        "Üyelik ve yöneticilik tarih aralıklıdır; taşınan Çalışan'ın geçmişi değişmez",
+        "Raporlar olay tarihindeki organizasyon yapısına göre hesaplanır"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Uygulama durumu (1578c16)",
+      "items": [
+        "Var: iskelet, yetki katmanı, denetim izi, organizasyon, Task oluşturma ve durum makinesi, iç etkinlik, duyuru, yetkinlik, minimal bildirim",
+        "\"planlı\" etiketliler spec'te tanımlı, henüz kodda yok: kabul zinciri, Bekleyen İşlerim, Vekalet/eskalasyon, raporlama, MCP"
+      ]
+    }
+  ]
+}

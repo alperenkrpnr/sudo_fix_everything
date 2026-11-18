@@ -1,0 +1,1131 @@
+<title>SecOpsGrid</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: sc24 reference: wide navy side menu with solid-blue active item, yellow brand subtitle; title row with primary button; icon-tile stat cards; area + donut charts; pill badges. Single dark look by design. */
+:root{
+  --bg:#0C1527; --side:#0A1222; --panel:#121D33; --raised:#182640; --sunk:#0E182C; --line:#1F2D4A; --line-soft:#19263F;
+  --fg:#F2F5FA; --muted:#94A2BB; --faint:#5F6E89;
+  --accent:#3D8BFF; --accent-btn:#1D63F0; --cyan:#1FD0F5; --brand-grad:linear-gradient(90deg,#1E74FF 0%,#1FD0F5 100%); --accent-ink:#FFFFFF; --accent-soft:rgba(74,125,247,.15);
+  --gold:#F5C518; --gold-ink:#1A1405; --gold-soft:rgba(245,197,24,.13);
+  --crit:#EF5350; --high:#F5C518; --med:#4A7DF7; --low:#8C9CB7; --ok:#34D399; --wait:#F5A623; --orange:#FB8C3C;
+  --crit-soft:rgba(239,83,80,.13); --high-soft:rgba(245,197,24,.12); --med-soft:rgba(74,125,247,.14); --low-soft:rgba(140,156,183,.13);
+  --ok-soft:rgba(52,211,153,.12); --wait-soft:rgba(245,166,35,.13); --orange-soft:rgba(251,140,60,.13);
+  --scrim:rgba(3,7,15,.65); --shadow:0 24px 70px rgba(0,0,0,.55);
+  --f-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14.5px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+
+/* ---- shell ---- */
+.app{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}
+.rail{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;display:flex;flex-direction:column;gap:14px;overflow-y:auto;
+  padding-block:22px 18px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;background:var(--side);border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;padding:0 4px 18px}
+.brand b{display:block;font-family:var(--f-display);font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+.brand .grid{background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand-logo{flex:none;width:48px;height:48px;display:block}
+.brand small{display:block;font-size:10.5px;font-weight:600;letter-spacing:.02em;color:#B9C7DD;margin-top:3px;white-space:nowrap}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:10px;color:#C3CDDD;text-decoration:none;font-size:15px;font-weight:500;transition:background .15s,color .15s}
+.nav a svg{color:var(--muted);flex:none}
+.nav a:hover{background:var(--raised);color:var(--fg)}
+.nav a[aria-current="page"]{background:linear-gradient(90deg,#1D63F0,#1C7FF2);color:#fff;font-weight:600}
+.nav a[aria-current="page"] svg{color:#fff}
+.nav .badge{margin-left:auto}
+.nav a[aria-current="page"] .badge{background:rgba(255,255,255,.2);color:#fff}
+.badge{font-family:var(--f-mono);font-size:11.5px;font-weight:700;min-width:22px;text-align:center;padding:1px 7px;border-radius:999px;background:var(--gold);color:var(--gold-ink)}
+.admin-box{display:flex;align-items:center;gap:12px;padding:13px 16px;margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#0D1729;color:var(--gold);font-weight:700;text-decoration:none}
+.admin-box:hover{border-color:#2D3E62}
+.admin-box[aria-current="page"]{border-color:var(--gold)}
+.admin-badge{margin-left:auto;font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#F87171;background:rgba(239,83,80,.14);border:1px solid rgba(239,83,80,.5);padding:1px 9px;border-radius:999px}
+.me-card{margin-top:auto;padding-top:16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.me-card .who{min-width:0;flex:1}
+.me-card b{display:block;font-size:14.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-card small{display:block;color:var(--muted);font-size:12px}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:26px 6px;padding-left:36px;padding-right:max(36px,env(safe-area-inset-right,0px))}
+.top h1{font-size:30px;font-weight:800;letter-spacing:-.01em;margin-right:auto}
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.updated{color:var(--muted);font-size:14px;margin-right:6px}
+.search{display:flex;align-items:center;gap:8px;width:250px;max-width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted)}
+.search input{flex:1;min-width:0;border:0;background:transparent;outline:none;color:var(--fg)}
+.search kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.roleswitch{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;border:1px dashed #2B3B5C;border-radius:10px}
+.roleswitch span{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.seg{display:flex;background:var(--sunk);border-radius:8px;padding:2px}
+.seg button{border:0;background:transparent;padding:6px 10px;border-radius:6px;font-size:12.5px;color:var(--muted);font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--fg)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-weight:600;transition:border-color .15s,background .15s,filter .15s;white-space:nowrap}
+.btn:hover{border-color:#34466D}
+.btn.primary{background:var(--accent-btn);border-color:var(--accent-btn);color:#fff;font-weight:700}
+.btn.primary:hover{filter:brightness(1.12)}
+.btn.good{color:var(--ok);border-color:rgba(52,211,153,.4);background:var(--ok-soft)}
+.btn.good:hover{background:rgba(52,211,153,.2)}
+.btn.bad{color:#F87171;border-color:rgba(239,83,80,.45);background:var(--crit-soft)}
+.btn.bad:hover{background:rgba(239,83,80,.22)}
+.btn.sm{padding:6px 12px;font-size:13.5px;border-radius:8px}
+.btn.ghost{border-color:transparent;background:transparent}
+.icon-btn{width:42px;height:42px;padding:0;position:relative}
+.icon-btn.sm{width:34px;height:34px}
+.icon-btn .dotn{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--crit);border:2px solid var(--panel)}
+.link{background:none;border:0;color:var(--accent);font-weight:600;padding:0;text-decoration:none}
+.link:hover{text-decoration:underline}
+
+.view{padding-block:22px 60px;padding-left:36px;padding-right:max(36px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h2{font-size:18px;font-weight:700;color:var(--fg)}
+h3{font-size:22px;font-weight:700;line-height:1.25}
+.sub{color:var(--muted);margin:0;max-width:80ch}
+.head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:24px;align-items:start}
+.stack{display:grid;gap:24px;min-width:0}
+.hint{font-size:13px;color:var(--faint);margin:0}
+.empty{color:var(--faint);font-size:14px;text-align:center;padding:22px 12px;border:1px dashed var(--line);border-radius:10px}
+
+/* ---- stat cards ---- */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;display:flex;align-items:center;gap:18px;text-align:left;min-width:0}
+button.tile:hover{border-color:#34466D}
+.tile .ti{width:54px;height:54px;border-radius:12px;display:grid;place-items:center;flex:none}
+.ti.blue{background:rgba(74,125,247,.16);color:#5B8BFF}.ti.red{background:rgba(239,83,80,.16);color:#F25F5C}.ti.gold{background:rgba(245,197,24,.14);color:var(--gold)}.ti.green{background:rgba(52,211,153,.13);color:var(--ok)}
+.tile .tx{display:grid;gap:2px;min-width:0}
+.tile .lbl{font-size:15px;color:var(--muted)}
+.tile .val{font-family:var(--f-display);font-size:32px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile .note{font-size:12.5px;color:var(--faint)}
+.tile.wait .val{color:var(--gold)} .tile.late .val{color:#F25F5C} .tile.block .val{color:var(--orange)}
+
+/* ---- charts ---- */
+.chart-wrap{overflow-x:auto}
+.chart-wrap svg{display:block;width:100%;min-width:520px;height:auto}
+.donut-box{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;padding:8px 0}
+.donut-box svg{width:220px;max-width:100%;height:auto}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.legend.vert{flex-direction:column;gap:12px;font-size:14.5px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{width:13px;height:13px;border-radius:50%;display:inline-block}
+
+/* ---- pills ---- */
+.pri{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 10px;border-radius:999px;white-space:nowrap;border:1px solid}
+.pri.crit{color:#F87171;background:var(--crit-soft);border-color:rgba(239,83,80,.5)}
+.pri.high{color:var(--gold);background:var(--high-soft);border-color:rgba(245,197,24,.45)}
+.pri.med{color:#7FA5FF;background:var(--med-soft);border-color:rgba(74,125,247,.5)}
+.pri.low{color:var(--low);background:var(--low-soft);border-color:rgba(140,156,183,.4)}
+.st{font-size:13px;font-weight:600;white-space:nowrap;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st.wait{color:var(--wait)} .st.pool{color:#7FA5FF} .st.prog{color:var(--accent)} .st.block{color:var(--orange)} .st.done{color:var(--ok)} .st.rej{color:#F87171}
+.tag{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);background:var(--sunk);border:1px solid var(--line);padding:1px 7px;border-radius:6px;white-space:nowrap}
+.tag.team{color:var(--gold);border-color:rgba(245,197,24,.3);background:var(--gold-soft)}
+.kind{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.due{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+.due.soon{color:var(--wait)} .due.late{color:#F87171;font-weight:700}
+.av{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:700;background:var(--raised);border:1px solid var(--line);flex:none;color:var(--fg)}
+.av.lg{width:44px;height:44px;font-size:15px}
+.av.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:800}
+.av.team{border-radius:7px;color:var(--gold);font-family:var(--f-mono);font-size:9.5px;width:auto;padding:0 6px}
+.role-chip{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);font-weight:700}
+
+/* ---- rows & tables ---- */
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 6px;border:0;border-top:1px solid var(--line-soft);background:none;text-align:left;width:100%}
+.row:first-child{border-top:0}
+button.row:hover{background:var(--raised)}
+.stripe{width:4px;align-self:stretch;border-radius:2px;min-height:32px}
+.p-crit{background:var(--crit)}.p-high{background:var(--high)}.p-med{background:var(--med)}.p-low{background:var(--low)}
+.row-main{min-width:0;display:grid;gap:4px}
+.row-title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted)}
+.row-side{display:flex;gap:10px;align-items:center}
+.id{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font-weight:500;color:var(--muted);text-align:left;font-size:14px;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:13px 14px;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums;vertical-align:middle}
+tbody tr:hover td{background:rgba(255,255,255,.015)}
+td.num,th.num{text-align:right}
+td .t-title{font-weight:600;max-width:420px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lock{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--faint)}
+
+/* ---- approvals ---- */
+.appr{display:grid;gap:14px;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.panel .appr{background:var(--sunk)}
+.appr-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.appr-title{font-weight:700;font-size:16px;background:none;border:0;padding:0;text-align:left;color:var(--fg)}
+button.appr-title:hover{color:var(--accent)}
+.appr-why{font-size:14px;color:var(--muted);margin:0}
+.appr-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.group{display:grid;gap:12px}
+.group-head{display:flex;align-items:center;gap:10px}
+.chain{display:flex;align-items:center;flex-wrap:wrap;row-gap:10px;padding:12px 14px;border-radius:10px;background:rgba(10,18,34,.6);border:1px solid var(--line-soft)}
+.step{display:flex;align-items:center;gap:9px;font-size:13px}
+.step .ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;border:1.5px solid var(--line);color:var(--faint)}
+.step.ok .ic{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.step.wait .ic{border-color:var(--gold);color:var(--gold);background:var(--gold-soft)}
+.step.no .ic{border-color:var(--crit);color:var(--crit);background:var(--crit-soft)}
+.step b{font-weight:700;display:block;line-height:1.2}
+.step small{color:var(--muted);display:block;font-size:12px;line-height:1.25}
+.step-line{width:30px;height:2px;background:var(--line);margin:0 10px;border-radius:1px}
+.step-line.ok{background:var(--ok)}
+
+/* ---- board ---- */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{border:0;background:none;padding:11px 14px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--gold)}
+.tabs .badge{margin-left:7px;background:var(--raised);color:var(--muted)}
+.tabs button[aria-selected="true"] .badge{background:var(--gold);color:var(--gold-ink)}
+.chip{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:13.5px;color:var(--muted);font-weight:500}
+.chip[aria-pressed="true"]{color:#fff;border-color:var(--accent-btn);background:var(--accent-btn)}
+select.chip{padding-right:8px}
+.board-wrap{overflow-x:auto;padding-bottom:6px}
+.board{display:grid;grid-template-columns:repeat(5,minmax(250px,1fr));gap:16px;min-width:1300px}
+.col{background:var(--sunk);border:1px solid var(--line-soft);border-radius:14px;display:flex;flex-direction:column;min-height:340px}
+.col-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px}
+.col-head b{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+.col-head i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.col-head span{font-family:var(--f-mono);font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:0 8px}
+.col-body{padding:0 10px 10px;display:flex;flex-direction:column;gap:10px;flex:1}
+.col.over{border-color:var(--accent);background:var(--accent-soft)}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px 12px 16px;display:grid;gap:9px;text-align:left;width:100%;transition:border-color .15s,transform .15s}
+.card:hover{border-color:#34466D;transform:translateY(-1px)}
+.card::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--pc)}
+.card.crit{--pc:var(--crit)}.card.high{--pc:var(--high)}.card.med{--pc:var(--med)}.card.low{--pc:var(--low)}
+.card.dragging{opacity:.45}
+.card-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.card-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.card-title{font-weight:600;line-height:1.35}
+.card .blockr{font-size:12.5px;color:var(--orange);background:var(--orange-soft);padding:5px 8px;border-radius:7px}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent)}
+.rejected{border:1px solid rgba(239,83,80,.35);background:rgba(239,83,80,.06);border-radius:14px;padding:16px 18px;display:grid;gap:12px}
+.rej-item{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.rej-item .grow{flex:1 1 260px;min-width:0}
+
+/* ---- drawer & modal ---- */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(580px,100%);z-index:21;background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.drawer-head{display:flex;align-items:center;gap:10px;padding:16px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:var(--side)}
+.drawer-body{overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:22px}
+.drawer h2{font-size:15px}
+.sec{display:grid;gap:10px}
+.meta{display:grid;grid-template-columns:140px minmax(0,1fr);gap:11px 14px;font-size:14px;align-items:center;margin:0;padding:16px;border:1px solid var(--line-soft);border-radius:12px;background:var(--sunk)}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0;min-width:0;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:10px;font-size:14px;border:1px solid}
+.banner.block{background:var(--orange-soft);border-color:rgba(251,140,60,.35)} .banner.block svg{color:var(--orange);flex:none}
+.banner.wait{background:var(--gold-soft);border-color:rgba(245,197,24,.35)} .banner.wait svg{color:var(--gold);flex:none}
+.banner.rej{background:var(--crit-soft);border-color:rgba(239,83,80,.35)} .banner.rej svg{color:var(--crit);flex:none}
+.banner.info{background:var(--accent-soft);border-color:rgba(74,125,247,.35)} .banner.info svg{color:var(--accent);flex:none}
+.checks{display:grid;gap:2px;margin:0;padding:0;list-style:none}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:7px;cursor:pointer}
+.checks label:hover{background:var(--raised)}
+.checks input{accent-color:var(--accent-btn);margin-top:4px}
+.checks input:checked + span{color:var(--muted);text-decoration:line-through}
+.files{display:grid;gap:7px}
+.file{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:14px;background:var(--sunk)}
+.file .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.comments{display:grid;gap:12px}
+.cmt{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;font-size:14px}
+.cmt b{font-weight:700;margin-right:6px}
+.timeline{margin:0 0 0 6px;padding:0;list-style:none;border-left:2px solid var(--line)}
+.timeline li{position:relative;padding:0 0 12px 18px;font-size:13.5px;color:var(--muted)}
+.timeline li::before{content:"";position:absolute;left:-5px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--gold)}
+.timeline time{font-family:var(--f-mono);font-size:12px;color:var(--faint);margin-right:8px}
+.modal-wrap{position:fixed;inset:0;z-index:31;display:grid;place-items:center;padding:16px}
+.modal{width:min(560px,100%);max-height:calc(100vh - 32px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:24px;display:grid;gap:18px}
+.form{display:grid;gap:15px}
+.field{display:grid;gap:6px}
+.field label,.field .lab{font-size:13px;color:var(--muted);font-weight:600}
+.field input,.field select,.field textarea,.inline-in{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--sunk)}
+.field input:focus,.field select:focus,.field textarea:focus,.inline-in:focus{border-color:var(--accent);outline:none}
+.field textarea{min-height:84px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.flow-preview{border:1px dashed #2B3B5C;border-radius:12px;padding:14px;display:grid;gap:10px;background:var(--sunk)}
+.flow-preview p{margin:0;font-size:14px;color:var(--muted)}
+.reasons{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ---- events ---- */
+.ev{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 4px;border-top:1px solid var(--line-soft)}
+.ev:first-child{border-top:0}
+.stack .ev{grid-template-columns:62px minmax(0,1fr)}
+.stack .ev > :last-child{grid-column:2}
+.cal{border:1px solid var(--line);border-radius:10px;text-align:center;overflow:hidden;background:var(--sunk)}
+.cal small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--accent-btn);color:#fff;padding:2px 0}
+.cal b{display:block;font-size:22px;font-weight:800;padding:3px 0}
+.ev-type{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:800}
+.ev-type.int{color:var(--accent)} .ev-type.ext{color:var(--ok)} .ev-type.spk{color:var(--gold)}
+.cert{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line-soft);align-items:center}
+.cert:first-child{border-top:0}
+.ann{padding:14px 0;border-top:1px solid var(--line-soft);display:grid;gap:5px}
+.ann:first-child{border-top:0}
+.ann b{font-weight:700}
+
+/* ---- reports ---- */
+.filters-bar{display:flex;gap:14px;flex-wrap:wrap;align-items:end;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.filters-bar .field{min-width:170px}
+.bars{display:grid;gap:14px}
+.bar-row{display:grid;grid-template-columns:120px minmax(0,1fr) 100px;gap:14px;align-items:center;font-size:13.5px}
+.bar-track{display:grid;gap:4px}
+.bar{height:10px;border-radius:5px;background:var(--accent)}
+.bar.b2{background:var(--low)} .bar.b3{background:var(--gold)} .bar.b4{background:var(--wait)}
+.stacked{display:flex;height:13px;border-radius:5px;overflow:hidden;background:var(--sunk)}
+.stacked i{display:block;height:100%}
+.axis{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:11px;color:var(--faint);margin-left:134px;margin-right:114px}
+
+/* ---- org ---- */
+.unit{display:grid;gap:12px}
+.team-row{display:grid;grid-template-columns:170px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--sunk)}
+.team-row .members{display:flex;gap:5px;flex-wrap:wrap}
+.warn-chip{font-size:12px;font-weight:600;color:var(--gold);background:var(--gold-soft);border:1px solid rgba(245,197,24,.35);padding:2px 9px;border-radius:999px;white-space:nowrap}
+
+/* ---- integration ---- */
+pre.code{margin:0;padding:14px 16px;border-radius:10px;background:var(--side);border:1px solid var(--line);font-family:var(--f-mono);font-size:13px;overflow-x:auto;line-height:1.6;color:#C9D6EA}
+.ep{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line-soft);font-size:14px}
+.ep:first-child{border-top:0}
+.method{font-family:var(--f-mono);font-size:11.5px;font-weight:700;padding:2px 6px;border-radius:6px;text-align:center;border:1px solid}
+.method.get{color:var(--ok);background:var(--ok-soft);border-color:rgba(52,211,153,.35)} .method.post{color:#7FA5FF;background:var(--med-soft);border-color:rgba(74,125,247,.4)}
+.ep code{font-family:var(--f-mono);font-size:13px;word-break:break-all}
+.tool{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line-soft);font-size:14px;flex-wrap:wrap}
+.tool:first-child{border-top:0}
+.tool code{font-family:var(--f-mono);font-weight:600;color:var(--gold)}
+
+/* ---- notifications ---- */
+.notif{display:grid;grid-template-columns:8px minmax(0,1fr);gap:12px;padding:12px 4px;border-top:1px solid var(--line-soft);font-size:14px;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%}
+.notif:first-child{border-top:0}
+.notif:hover{background:var(--raised)}
+.notif .nd{width:8px;height:8px;border-radius:50%;margin-top:7px;background:transparent}
+.notif.unread .nd{background:var(--gold)}
+.notif time{font-family:var(--f-mono);font-size:12px;color:var(--faint);display:block}
+.prefs td{padding:8px 10px}
+.prefs input{accent-color:var(--accent-btn);width:17px;height:17px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--raised);border:1px solid #34466D;color:var(--fg);padding:11px 16px;border-radius:10px;font-weight:600;box-shadow:var(--shadow);max-width:calc(100% - 32px);display:flex;gap:10px;align-items:center}
+.toast::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);flex:none}
+
+@media (max-width:1250px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;border-right:0;border-bottom:1px solid var(--line);padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
+  .brand{padding:0 6px;width:100%}
+  .nav{flex-direction:row;flex-wrap:wrap;gap:4px}
+  .nav a{padding:8px 11px;font-size:14px}
+  .admin-box{margin-top:0;padding:8px 12px}
+  .me-card{display:none}
+  .top,.view{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .top h1{font-size:25px;width:100%}
+  .updated{display:none}
+  .search{width:100%}
+  .row-title{white-space:normal}
+  .row{grid-template-columns:4px minmax(0,1fr)}
+  .row-side{grid-column:2}
+  .row2{grid-template-columns:1fr}
+  .meta{grid-template-columns:110px minmax(0,1fr)}
+  .bar-row{grid-template-columns:86px minmax(0,1fr) 78px}
+  .axis{margin-left:100px;margin-right:92px}
+  .team-row{grid-template-columns:minmax(0,1fr)}
+  .ev{grid-template-columns:54px minmax(0,1fr)}
+  .ev > :last-child{grid-column:2}
+  .panel{padding:18px}
+  .tile{padding:18px}
+}
+@media (max-width:500px){.tiles{grid-template-columns:minmax(0,1fr)}.roleswitch{width:100%;justify-content:space-between}.seg button{padding:6px 7px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <img class="brand-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAYAAADnRuK4AABbBUlEQVR42u1dd5wUVdY9973qnkDOggoCggqKAVREEDDnuDPmnF3zmlPPICpiQkVczFkcZA0gmHAAIwKSBEGySE6Tp7vrvXu/P6q6u7pnUMJg2G9rf70jE7uqTt1w7rn3Av9vDyGIKIjQtv8KIYhoAIT/Hf+PgBMpdur0VyoF/3f+D0j/tUckonxrkTgaIjLsKbp36IO+NVFbChcAQHb2rvTIYx/jtdfOSn6FCP+zSP+dwEnd0EYnNMGTs2/Ub/+6IDxThJ767B0fQHoLfyNBKQDYGR997pIror+f/y2efO2fAJoG3Jv6H5D+myxOp/32VY9PvFeNWL3EGS9S70ORehPEYOTGwQCA4VNDWw4gAoAsfD51mSoTm71WJLSGBZPnLaOnnxuAxo3bJb+7uNjZrjjrf8efDJzuR/amyKtv0Fs/l+EzEYwWoffEzX03Gqv/pQhGux6AisXZSgCFMWHWUtrEohbE47TEdbFSBGtZMHnuarz01kDUa9kqYJE0IhH1vxv0NwFO+PxBe+mnv31RFy2ymCiCD62gqNrg3RjjA5bQqJibO0kEY+3D2wigbIyf/gs2imBBzGJRVDC/kjG/0mCliNokQotW/YKPJw1Al747pbm2/yIgOX9/4IhCAQAiRmEhQufcsp/pf9pN0qzTmeGmLbLcSgAb2EJYIRTyACYMKwxmAFUloW38yzmoLM+CBSCGoEJAWBOENKpckahmp+FOu6reO91ri1692v4093l55InnQbQkCaSCAqCwkP8HoD/+IOQVKRTlsQccAOcP7IHeR93gtt49jxo3zZJSIL7JWlGk4ZCGOICI9wKDIYAAWLWoGQCgH2SL/zZIAGmEirJcmNRnQR5LAHJICNqUW6FKbal5u+Z0VLs7pX2Hf2LK5Dcx4N4XQTQt6doKCuTvCiTnbwecoiKFs862GJlvQQAuGtSLDjr8Ruzc7jRp3NLBJgtZ61rjaAWtNSkB+dAQkJ8XKYBAEADRqqxtZX8gokA+D6SUBx7/L4EFApCwcVBmBGXMaNG+IU7vdDX1OPhc+WHaOHz8+UMgmvl3BpLz9wGOKJylLfLzLQCtLrwnDz2OuUJa791XmjZWqBBgg2tBpOAo7RkJTtE7lKBpvH8QefeenSyz1e9G/P8POwINQDs+PeRbNWH/o3ifU4oA0ogaQdSwtN6jofrHHmdKr96n45Lz3pQvvx4Mop/+jkBy/j7AIQuA1D3v5Em7DrfSrnv1oHA9mHIApdYCUNBK+34k5VaEk3SMJEBEBEcpUQ4Qa7HrJgDAhC3mbHyUoAr1GsShUY9EIJL4dMLccRravKvtEIg0onHhKLFq1jYkHdtepLvsfxZOPOkt+97oISCa/XeKkZy/NHDOVAngOOqecafT7u1vw86durNWsKWwqGJAKQWldI2bFfy3SPLXis8YaxFoBcQat6oCAPw8bWu5mjLUy62GRhMBCVjIw1YAvOn/4aGXCNCKAGiOuYJ1iqVek2znwCaX0C5tzjOnnfgGPhz3JIhmJYGUP5IwMt/+D0C/n1IpFBVQADiNVeSds6RTr0up8c49KESwFWBYC2ilofx4NmltUoEskfcJSbgSIv/rlDJQBEDxtsAbEDC08twfcwonFADLbxkxBUAUgaA5ZsVdIxY5LcM4oOUlaNHqAvQ9ZCQmFD8WCLYJI0cq34X/D0A1CpxFUMgni/xCAGiG21+5QO3Z8yrZaY/OAsBWMKPaAo5WcJR/g6TmjUUAOImbmARXCjwWBDCAqorQNiIoFxtLGnhpvE2UN2panBoW0Ue5+G+KvfMXEgfRmKDKMuo3d9CnzdnYq8sZOPWUD/DeqOdB9BkA+1cDkvPXAQ4sstvsSpc/fAX27nE+dt2znRhASoyFAsHRyrtJiRsgaeFO0spQ4MZJJrjEv3EMlwXGQjD/Sw9AV3RnXLmFb9taAlEclpeApAmIxDd5/nvLAJsETB5hM8AHoEBQjoaxgo2VjOzGYezXKo/ats/DMcd9JZNnPAai9wFYaA28/bZGfj7X4rv/sEP9aaxxkWiABPlk0eeK1nrQ5/frpyb8oA4/7x602LOdbLJWKgxDKw1HqaSrQiC7SQMIpR7wGk98xuc8l6MkWkWYN30cACB/5NbkYApAJZasmgRLHolJAZCSBAyRwHO1lPbceN8H3wVLynoSAO0QdFjDkGBDzEq4qejefXqHrrjyPZr601cYNuIMWKuRn2+hlKCo6E9TANAfDpyCAu+CA0CfM3elk/95DXba/TJq2ro5qgGOwwBWQSuVvMCK0sk6EqSbn+DTTbU/kJICHFlj0TCsZPWCWTj/0N6QtZX+DZYtPo/CQkbv4w/Gk8O/QovWBDeuoDSlLE4CNJRxlQPZGmVaps15SwJAVjlEaKwUR+OgpUsmy9QpT+KK80cBiEMp4N7xDgr72z/SIv0xAMrL0ygqkiRwep57AB171aXUfo98adGiuVQCqDYWCgqOorQLSv7zToFXjetDKXuaIHsSbkMFTpEBWCtKK0th17FjXz8ZT18+GkVFeqtjChENIovnRz9FZ514HdbFXFEqhMzCeyJWS7pVTgcTZcRqmeckwX8zALFwCGgQ0nBdYP7cGfh26uO4+bK3ARgoAixr/1rL3xtAeUXaLzd4J3LUFQc7h51yLbfqlo8mu4ThAhy3FjoBHKQDhzIAFORZqJZUuQaAKPB9BLKWQwosjbXjLlz8T1zScRgixQ4K+5ttk8SCQB0bYNKn76geHY+RtSYuoBAUUerW+ZYm6bYk3Y0BKZeXDPwD4CFJ98TJ82OGVoJGIY04g5Yu+kFmzh2KS099D0AJiIAvvnDQvz/7yPsbAShY4ASAQ8473Dn6rBtptwNO4KatlS0HkACOIq+6vTkrk/w8JfKr9Kfax4hIMNaQwKkJYFkAsk6OciQXsMuW3IrzOjyatCLbo4lWSiCHOfTpkPG6136HUQnEMFsBNIjIY6WlprtNuwsScG8Z8RKk9lBO+bfPWobSUI0cRSLgBXOXyQ8/DMeVFzwHYAMAT5PUv59FWiD5VwRQJnDyB/WkjgfegfZ7nkIt2gDlCYtDHnAS1kXVYnkUaol7Mgi5tKsacAf+DSBhIShLWXA4B8C6datl2fw7cHOfV1EsDvqT2SLG5/fioQEDGCKNMWLc/aGePa5wmjcPx8sA6xoLiErW3RInSQGAB89bJOC2KN1yIWCBa7g8AoSZFAkah7QoALPnrMDEr9/CbVc+A2BZEkj9+tmkR/jLACjTVV04rKezx363S+OOp3LDlpAYBMYwHKWgkYpxqJYYJ0i01RYfUPDzku7ekg+yFSLiULbWqiEQX7Oykpf89CpeGPo45ry/CEWifaKyFqMiNGHCBN2vXz/RWltrbeovbi6uSFoiAQY811Uf2/8mtGh2jm3RJAclBnCthdZ+tTUAhgDYUwYzM9us7TZJOnOa5Ld8a6sVo15IQwQ0d/pGWbT0aQwY/CyWTF5T10Ai1I2kwnsj5ww9jA7odyM1a3eKyq2vuAzCrsvQpKGV72LgWfZkhiWp2CVozmsDEKUKEkIZbk/gXTyBRZZ2KBfQ65dssisXvCZvvfIMJr+9AAB+BzyKEtYz9S441XxBuPfe+1Rh7fUpr00o4RKvj3TDycffgo6d8lXLJlkoYbDr+haJKHVeKhCrBYnGQMAttcREhAxrlQEwYwUKFvVyHIQBvXTRelm2/El+8slnMf79DUkR3YQC3p56G22zxRl1lvUUWYBz1cg+dpe9bqYWrU+Vhk2BMkAsWzjQNaxGptVREgBVIPBNc2FUMzZK/Kx/50HEOktpZAN29S8bsWj6a3j3ySGYXpwy3xMmbPZiFRUV6fz8fAs0b/3WiFfP33PP3Y9t06ZZ03AoXPX1N1PdH3+c9+Gdt1/zLICqSCSyORAlqApKAmnQ0K66z2E3SYsWF3LrnRyUuEDctQg7OnmiilLgSGOrJZ0olQxJUg3gUAZPJoCwIORYVS/k6CzArlizmufNfwl33z4MM79bsb2FW9oOHiesLnz6dHTpeykadjiSwvVgoxAwMxwK1KkC6TQFPqa5qfR0NpGICGXGRxmuzxoBiUVuyFH1AKxZsV6Wz3tFnnng31hYvGhL5REJyzPosdd7nnjsISO7dum4S23fN+nLKXMeHjQ8b+zYF3/6TRDVBqR/3tUDJ554A/bsnI/WzcJqo2G2IlBK+darZhE4+U9GOj2QAZw0klIy3Jz/dYYQiKm+1pINyPLla7By7Qt45ZU38OrQeYHOFN4a10ZbZXUSFeH8QRfrbkffqNrs3Y1VCFwBEbYMlQBOBlAoyMgmuBlJAwOpQLxIGTFQJojYC451FhzbAJD1Szdh2bxh+PfQZ7HgoxUpngb8e5mHiCilFD89/M2up5541Fc7t27euDJu3cQZJBJyR2sOKYRmzpy34uabH+0+fvwLawsKCqjw957aTCD968ED6ZRj73F273QyNakPUyJgYy0gOi2WqTV2r41jyoj10zI+qlmbsywgWOSEHOQCtHpVlcz9cRxGf/IInntsctIipbvy7QRQIm7Y/6xu6qTbCmSXPU+jUA5QAcvCgBcaByIHSgcQPHfjXR9KuScVcF2UUSuqLa0XFihinau1kwXYdSs22V/nvyQvP/Uk5nywPJWyTmBgi8wxed6vacMJX42f2ffQ/duVV8esEwrrRK3Nw7sf9zPHHUeHiyd+P+TwfgffXFwsuv/vZ3K1s/B3DjoqdMwx/7S77XYKN28MlFrANTZ5LdPcVS2pfVrgHXBdadkc1eDCkl9jIxDLyM7S1NSB/nUtZPa81+1N192CxbPWbinFQb/7dRECEevbRh8jLfceKQ12a4BqL1r1yg3BbMB//0rSU+1EoqCC1H3ge3yLk3JdwcDZJ80grHIdR3IBbFr9q14+/wXz4rMvYc47y7fG4qTf04hTWFhobr/rsTPuH3DzuyEN11gbElJgSYRWlLyfzCwhRVi69NfyY44+qdOSJbPWMgvR1mQzmUAqfLwPDup1B+3e/nhp1RIoiQpZy6K1Bun0dJ8onbII1gSlFsZBKCPVr8VNsghArLLD2mkE2Flz1tnx007BXRd+6z2Mv02yqt8ET6RYg4jp0uceoQ59P0b2bg2kwjUiUCClUllpxhNQQ9CV1LKnlxkkKfHyr4OHIEox96ysGJWllWrkOFK5fJnM/Pw2ueHk/czN/Qox553lXjuO+C5i69LSgoICAEDXrh0PCWlIzFhiUhD/nSSoKpBnPRURAcI7tdmp/il5Zx4pAhQUFOitiiMLC71GgKIi7bX43Pwljut5ggwb0g9fTvoY8QqSZvU0Ke0xyElrnsFVZLqqIAeWfAWVCUGyUlI/72WEmmMG7np2Za+uLeiC08bh5bFHoH9/83sdu+o3WdbC/obOe+ZR6nXpLRxtwFztCrR2ardb4mefUnss6AcUqQCQkglU8Bs9tQWLZrZZuVDUTDmIbViIRdNvkKvO3w//OuoRrJyywRtmEFEeGbjNfIYAwLoNGw8UAbmWyQrAQqlblRCoAdDKO8V6OWHVs1cPBQD9+vXbtr+cn28DQCI88dBEnND3ODz+8HH03eQJ5Lgqq1lIaUczJCmy9gNqDmRlGYlF0F2lqeyoltiI0r4mlkO8PmYlu34jHNlnNMbP7gUi61f7twJAES+I0pc+fxR6nvcvKlOGjSU4IUqmRzXiPEoP2jL9cLI8RemaGUr8PgGsy3CNRY4i3VhpU71uiZ0/9WY+q2d3vvaAp1A6scSTgXjg3sI453ePRo0aLyIShJQvFPTdl4iABTXKEK6xMvfnRQYAJkzYzj/uAUmSPfzDHv1Yju7Zn5957nj3y8nfaFOuVDNHQcHCuD51IrUoVii9jha8QSRAggOVgNxEarFOSmlsqmaE6+WgbauPcdldPXHmmZsFkaq1SFgAwT4nNOGO/d6ANBRrjPJ1vOkuizYju5HUiVAtHFfq60nCjMFsEA4pNHK0lC9bFp898UZ7dl43XH/gE8DCsuT4lHyqs5pOQcEELzyP8ydWCE4o5DtSSXF94smdrcfNCQR69dp10THvj/3G+y0T6qZQ6bk2QZ5vke6/aRwf0/PQ+LPPnSSfTPieohUajXO9TM0YC2ZJu46gWlxZ5vOdEYwHmf9g+OE4CpVRg51aNMDFFw6HSD3k5UltMTNtLuOia8c+j27HXYaNrpGQ42RmhDX+rdIJQqKUXlky1Xh+8ZTYCpRmVQ+aHMBsXLkYGxc/jdsufBlYXOpZw+IdqHGJKKIB3KHLUbu+P/Lfs/beq32DimhchUIhynw2BIDrWtMw23E+mzh51NH9ep7pB9k7RlpaVKSRl2T5Q+rcq86R08+4VLrt2wdtWgDlDBg2UKSTZAPVIrRLyFiCJRRBLbwRanFzbNA8y0HRR4/j4hP/VVtQrWpkCPnKovfFHXTrfS50yq2IVtpLQYJV4czqcjDSJy9x8l2ASKaQCoC1rIy1OleTaggt5SsW8axPbsFlXbrjtj5DgMWl6a5qR+laCvmdd1gvmvPp8rEfj781Grc6Nzts2FpOxK6aAAWBtdY0zHbUTz8vlWHPPD+YiGxBwQ7U2yRcW1GRhtYuv/nvV+WMo/pjyKNH47upo8iUuM5OjuOENfkSb0mPOyWjeCs1rVGS0Q9kw2nyX9GoYEu9el6HayN7ol8/m9nXT7XyPdd8VKi6HH8fVcStdUKplhmiAG+TIadIBsmJNB6p70kC2pNVqFzlKAewa35aJmsWDcGgk14AUBF4D3+kzpdEhIjIGfTY8Nduuv7yM8MOJZ7b4HvQS5b+Kq+PeD8vcud1o1Kljz+wI/fssy2s/ycfenZfOvHof4ZbND9PmjXMcTcBEosxFKk0bijNlmaUR5KJndRep/U0VIZaZzs8bvxrOP3ICzP5IcrgfACibNw5awpa7NMFrhGviuwn137wJWnCL/G7hcnjTRSlShBBgZd1GblhpbIArFu+iJdMH4InTnkNQNmOd1VbDCJ6ZMhLVx/e76C7OnbYrXWjBvUAAJtKy7Fg4dJvhg59afDrrwz5oLi42Onff1tEaHUApIhQmmTm1bc7O3v3uM22aHqBNGkaQkmUwUzQDtVgrYlq1tREanFlQWrGChpnA8uWrsc11+6Br8du8ucdSTqAEjrfvuf30Ec//B05rZRJRJLBkgQFU3IPQJKoECsKlCZ8IEEAthaNHI2SVSVqxZwH+cGjhgMoAxHwDv/RFicj1BCdlwfOIAMbXH/XQ0dff/l5UlpRhX+/MqL6+cci4zJLIPn5I2nkn9XwF4ko9CtQSU3TbQMPQs+DH0LPXocjlAVURRlOSKVlu8Gs5zdKb+nhkABaMbKgMPTfpyNy3XtBCTDVcF8XPX+Zc8DFz1OlWFc7OggeSrM+FCiCIr1gikSVnaDZZWocUmbxtHkY/86pKH5kPoiA+774My0OIpGIKigokARwzr3irgO67dHmiBWr1/JTjwwYAiANGPXqdWsZefCGy7PDOYuHPP3W14vnjvkloR8iAnaE2m/LgdRP+cGtxn2PX4/zz74LrXZqjpK4haN1mrw3LZiW2lugMjkCYUPNs7WMmfQE8vr+CyIOyANuwAKJg0IydP3nw9SeR1yNUtdY7Tg1JRVSg/ahJHgkZdeIoMRY3djRvPqXt+2/2l0NoNT/O/bP7GWKREQVFnouYNCQVy7u36f7la1btTh4151boTJm8d2UmYt+XbZk7A8zZmXpcNjt0W3fJl27dD5q3306t4i7FqtWry/96adFX7/z3sdPvfLv+z8hAu6773eq838EkB54gGEMEHmxgzrr2E+pbZuOvMFlCSmVDpZgHz/VFOSl1dsEsNZS8xyNr6d8KkcddDJEXD87DPxEYkbgkNKBNEyEHoq7eNgIBlvBI+y9HmOhx0XwOAueYMEQ//UkC55iwdMiGCqCZ0TUU65Rr4ugcPpEzyJpj6D8Q2YH5W22T+qKK64IAcAV10faTp784xdxl8U/OGbEVMbFJj4RMyIx/18sIlVxY4wVk/j6mrUb5YMPJrwG7NEmYdU2H7v8QVPJxJ+0dsWgtmrh+vmhCmGsiFmscgUr44JVce9j2isW+G9XsCIeeMUEv1QxlYlg0vTVALJ9IFLtnanKUQEzEpDw+mwyBarqIumKypT6iSnXgWxYsxKv3nNZckBAIdkdPq1soMMYOXKzclUicl8rmtj+iN57f9qmddPdXYYbjRutlFJEpBWAijizImJv5g8Qi1siQIW00gLAWBYCuGWLJnLyyX3P//KrEYdces19RxcUFCwFUJslEhQWyh8yKIHI+HzNL9wwO0+uOWumatKKuSIq0JrSszBKZ6QDxe+UbVEgghCDZNddKwBE/YBbagcQA56OUNLbuMGBAe9B4bt4ykuV8qsKFqy0lh8n3Y3FHy1AwQQHI/PNDm4fSvad6SPO7WfReDbGP7MhEQ4mrEOvY8/s0PugTh+3ad1095Iq1zihUEgrBxYMJQJFhLDSCiRKRCAQKE3JqjwnxNECHTMMiHV7H7rf7s88ftd7RNRDRLiwsDBt1AOOOLVZuEGzlvHUDCCFkSNph/W3e0VQB0SzqHPb2+TcUwdDESfq1LVmW5QZPUuaEJ0EIO2oTHilANS5u/dJy+R9lmoGWAlTQ74uOdjznfiytSz1wwpLZ87CC/lvJWKrHQwcCwL0RQ8dTj363GYd7IG3XzvQl6IkKu9ERPaDj4ofb9+u9e5V0bgbCoVDyZYgUFL9EGx+9QobknpQKPXAKgBCOhR1jXvkET33fato3B1ENFBEtM9QE4gEvy5q40au/ByXXPQtvp76OIgm7fCJG0QWIpqJnsS+C89TXTvuwyVRhqPVZsvKlCnUl4ySCG9Lb3xAspHkB6VGzStRYHVICQQi61YVAhRH1x0QLEdEQWl4Y+6IcV1R39DweaNxzOXj7f6HHiMry9Zj4nPr4TjiNcbmaSKyp5xy2X4H9+h2HAATDjkhx48Dg4XThA5I0hpjCeT3a4kIhMWT0QBwPIWkA0B69dzv+jZtDmymlLKS4EqUAubPni0rVy9B396n4KzzJtKkOWP0oOHHgUiQn28hon6r4r09SgMQ4pg54wlYISidijkSNae0Yn1mD1r6vAiR3yqmJqrKJjOLEx+EibY+8XaMcErIlMz0rZVQWGm1Yfl6FN3/GYQJ+XXZFelXrAuJwRb6qpfPcIYtKs7tf8IEp/0eJyrVyKhStqjYOBsAwRgCINdccw0BwPEnHn50yxZNQ/G4C6VVmtSGfCkKQ1IUNGU0PgRkEklgERAOhQgA79ymVYvrb72ir4gkdEICY7yAvkuXV1HClpwmxunY5YTsU88fG/7056/0wOFngIiTQEIdBtsEBgth8MCP5Nd1aygn5E3+qCE+o5osdSAGlt+QHqbe7Cp/Qpd/BQPezy+L+E1unBhXSYFWJvKze2VNFkFilV9iwzcVKICuM34kElGAV7HWVz11uHp21idy5Fnv6l069IObK7KRbTashLQC9j92IgDBBC+a69evnwBAwwaN+hMBVoTixqvTaQIcRX6DbMLKeJaIGUlLk0h/yS/jqEBnjoAQcw0cTaLAJwbFav7oPMEBB61WWUAWQ2gNWxPNYd2h06F0ynnv4sPZ43DHM0d7MVwh113GRt4kkYUz1mHZ0slOGFACC8nwRomTrVU6K0iqvEhtoQujTCMUaBNJQkf8ArCAAoVTlwBeOWeF9wMT6m44Q2EhY5cuu6sHx46Sw88bz633OZqj2sbKjK1mCwMFDYVQU2is/rlTbea8ZasW5CVRMDFDxgoZIjJak9GKjAIZEjEMMSxkLMgIYETIAGQIyhDBEGCIvJ+1VmzMWOtatgDspk0lHWvldxcu24WaK61Iw4ogbi1VbzLWxsKMTnsfi9PP+wQvfv4xdumyOwoL2aci6s6fbdrwibhIBHUZsW0tJibJGwVUorU4k5pZmFaSXlTjtF9OaV22kuxp8kJNIRgAe/UeDQDo2k/qxPIMGGBxxfDWunufcWi/1+52AxhlrkBBQdgKwmTrQVeWVWmZU/oJViz7BCKEguQZJ6L8bABOTla4RiipE7W7Gs/Ub//b8SeTWdEaALLCGVODJ8CzKFOnfccsn8TCDY9Bk6ZApQA2JkKiUOZaUBZw+BHHoP24D/F58VF46OIVyfLS9hz+2COdU2+hdQWindqbXNMaFyU9iP6NMDb121r7WZiJZQG5tbSLIMU01+CGAm2cAiAekzqLeQoKgDETmjvd+38hrTvtLmusqxwdUiHNihTZenB4w6oK+WXRSPeH6S/jneu/9AjRs5M4z8/PBwC8N/qjD76fOnWDMMetGw9ZWBUKhUzYyeZwVoizwt7IXzaWXOsq17WK2ZImxU7YER0KseM4hghiXEsVlZXZlVWV9Tnuhi3YNmzUuHrx8uXvBP8mPMabAEwR4Fh72hXH0nGnnyMd9zoDu7TNpSoGjCEhUlgdddG27V7o1/9jvN3/SBQUrEMh1PYpL30EffVlI+l5MKCyAGtq3tu04iplxNCUXrL6TQtk4uHM1I4SMvOAyl8oXTqSCLQ92Xkd9dwX+f1Ugyc/QLt22lOtibnxcDhE8ThTg7CiyvIqLF0+XMa+/m+MG/Tz5rosR/rE4tDHCp4A8MQfQQiPTCczxe/GEBB9LO899zH6njcYV113FXXa81Jp2DAbZVFGSIXU+qhLe7Td2xbc9wCILvNqlIXb/X4sVMzzGAFLU9vsCMpoUqQtHXGXCKJDOdWpCW2eOQtuK6oxlQ1BAjHRo15HHE8+WZx21wFZO3W6TJfAuKFQCPG4SG5YmdXL58Xee/5Ee13XmzFu0M8Q0cgr0v7ODN5cE6GI6M29iouLneCr9q9L5teViFDid2+2nJGUrOZ53RgT3/gRZx98LQ8beqKsWD0V9bIJIEZYh3QVLHXd5yLk3bAH8snWSVCtU23kaRYgjY7JaKXegiawWmIgx4gE62wqIE1NwMoHFiitKJds3WGz/S7smhaEkQD2Obg/6jVRXG5YaWJqkEV2w8pf5ZVHDsb3T5clBwRsSRPcFnZbbhfv8vumyYIo0R+mQDQeI58/T4349Dvs0bERVYEpBslq3tSJ9zkqj0c+ORD9CrY/ForHkLRAtJkGxcxmhxrDvPQWZGGWKdjHlZzALinSLZXdScpfeekKxAJAdPsZjCOPNAAU1i87K86Ay0IOAQ4bkm8+vRXfP12GSFEY/cn8LReVeBbJYOrUEMqXzufvJ1/nKFA2WzAbEiOQeg2Pg7cIZvtt+qYN9WCM7x0CbCFtps++tu4sRVsy5lcFtCIpy0N+PUQIaSN2E50LkjB/zICJqzp7nsP1sgjMmq3YeiFtly5djFcvft/v347j73706GH8kkuRHNorYju0392UGJdcUWi9c3yLB139rgWqyoExgDaB2IZqaRuTGn33lPQ9vxUDJbIwCrSGSs0eMEr7X2JaTyBEZxZUV+jtho813myeeq3W6npKaRFXAEjJuvdAFP0v2kfqEZ5EcXfpkvejDkGsdaW+IiGuqLNBYETBhR41p8BKRldrbbM+ZUv6wtioIBNd68TlADrFH63hbb8hIOT4lO6WFNkim19MSwUexT174j/522/nc8OcHNpUbjH1k9kQoa2Y6/zXP9aN9DKVb4q/V6XReKhRdi6+n7ESxaNu8/isAtncoE+/5va711u13ClK9er7/VT+C7/1o+kZGG0msK4JILFpg3RJfFtDgZJGGlnut/2COZSjiTZtXImfZ8yBCGFOzROPRCJKRLRSSgiFrBSJiDhFNYqJhQwqIHz4yHx7f//j3J9/WG1DjkWo6xgAgqI8/q8BUF6eV35rljdWtLJcvmmpDBrUH4Pv+AkFBZQR41FRkWhf2yREJEopERGdVxt7nZfHECF2sr+RTRuXU64mEjAyx+tRZt891VLR2BIAQXOwgpYUzHMqmJZgX3ZqAJK47Cr5Ycxd+M+1yzASNTIHEdGFhYVMRJaZmwjqdWWWpkRk8vPzExXsdBBFih1QbIl8PTZPqktcnHbaXxECpJSCyHYqLr9+IEtWLsqxn0y4DVPe+RnDp4aC1zASiSillOTnkyUiEcFOubl7tmbmekRkR44caWs8iESCggkaj927DC+9OlBFoypZbcgMppExz6lGTPpbQXSCB4Li9Oa0QC0sGGgFMz5rLeWGlKxa8AlGXfhqbXMIlVIgItvnyPxjrrjsogvat9/lEDda1S43J3dVeVV00rx5i/9NRJP8Jyv1xwv7G78L4Cv0OKQIHXMaIDG+9i8CHiISZgYRcS1zFrf86NCxMT76+DM8efN/kFekcWUPN8jK+0pHddddj1925JGHnJVbL6tnOBQmAa1avHj55Dff+fCZ/Pz8r2q8h8L+1k86XrGH9bua+vfclzZEWUKOqlEXy6yNCX5jeUzwuMLXRD9Q/iA9JqIGuC7uZ6GBIniABQNZMNAKHjBCDxrBQ1YwiAUPW8FgcelxFpz60ukQIb+PPY3AA+AMHvJa4YJFy0VExIhIVCQpQC4pq5JPPv/ujUSPVg1rRASgXTYiEeevsyg6orRXAms44t2PJ02ZueBu/3y37T327esAzRpk3ijf7dPuu3fvOOnLKR8bk9Rxpx2LliyXolGfXhy45kjbX08EPPbqOeENVkK/xAxWWcEK19dB+x9XGsEq671Weh9phbF6kwiWly7efNCUCaDCAICS4PFfD1nBwyw0WCT0cNxkPyMWdy/5GdglJ1M4Hyn2wPTkM2/f4uvXTUW165ZUG7uh0uX1FXHeVG3diphrRUS++u7HtwGE/AtAf90t40nwNHj9rfe/SdzEr7/94V8AMHXq1FAdNj0qAKGvvp3xdVLvb4yJx+Mcj7tsjLHWWldEbFVVTIqKxp7rgSjDnYkooHWunrZ8XqharPrVtVjJPnAS4PEBtJoFq7wXrXA9AC2rCSBVW2KWmlBHfrwTIA+9UWOAEBQYSmthIwrLZtwJ/FqNuak/EIlE1IDDDzdnXXpnq1NOPvweh2CqYy45jnZCSqmQoynkaFJEjsukqi3iPQ/uetaDjwy/koi4uLhY/6nLYX4DPAMHDmRrbW7RyLFjzjv7lEOqY64bjxt78IH7Pvr1tzP+1aNHD7dmTLf1cyuLi4s1EfFTz7555aE99+1ljImJSFgrrR3HIcfRpLVWSinHGIOcnDD3OGjfZ87/5x3NlDozM64kYFWV/W7ag8RQYRJOUycGScXgGJi0isPvpvHBuElqTr4KUNuKjUED5cSXzH0Db5w2yhvEmYp9CgoKSETQ5+D9b2y3S8tGcdeAtKM4oKtWRH5WqRCNxbUG+NBDelwCILtfv36ccUHlL4CeBHiyR37w2Zi8fxx3mDHGhBwn5BUKxHQ/oOuj77w3ruDKK690tiGwTjtH/xrkdNun02V+OOoktjFSYlaBn9g4jqPi8Ti3b9emUY8ue/xTRDBhwgQdCAO8LcT/PHWE+9k3o+LNQg5s3KZJWoNT5PzEKSXx5S0DUGoCmq9USxOUASAGmag19cJOfNGM5Xj5hOu8ToM5aSc/bdo0BQA9e+63FwCpsgqGU1MLFBGUIigADgFhrRQLVJudW+59ypkX7kREHIlE6K+0klMKCsRa23TkqHGf/OPkI/tba12tteNoQlbIIWuZssIO9uy4252rNvEuCHSEbIulIyJu1ma3to0a1NvHD9gVEBD7iyRvDdtk44X0OuiAbrVMUPN+TKu4nHroDfyfzzaicVjDxG1y90b6BHNfDyZgSmh1fjeNZ19cLjW1IeRtG4LrusjN1ihd94t899YRKPulBAV+2h04Ro8erQFgv64dNwAgKwrGB3aw6qvIE3SF/E1PbXdp474/4pUq34rJjnBBW0rApXXMOQ8wEelnn3vjg3+cfuxhrjFGiJKxjrGGw+GQLi0pq/hx9uwjRo98YQkA2taO1cS5X3zjLaUtWzaPe3xBYHCXUDq5LMmZBbTvPnuVb1bmaqyCUiswePDp9POS1bpVtlZWjDcQg9JnOSWXxWwpE62MZ4VYMibME4iESSmjmmSFUF22VFYv7odJjyzAP97RvnAq8wK4APDrynW5ACSkGMpn1NkfECoZO0YIwOq168P5V90d2lHxi89FiVIkWwgichzNxpjQa2++/+ZVl5/bOxqLG2PFsVZ8Q83WcRxVXl5RPu37GSece27+V0VFRXp7FAAFBQUEAG8+MSy8cUMJJQbPiwiYBSycttuOdGpk6eJffs36DeKBMWKExozPJ8oHY/vQj4uW5DR1HAeKYSwndRfBzYsCgJwtSOPv3/AgBovgvpiLQiO4n4Xutxx6wNjwEJHQE0Yo8tMYHPtkx6RuZzNHsZ/OPvHsWy+JiMTirlvlspTHvFdZjKU8ZqU8ZqUizlJeHbciwt9NmbkAQIO6zsSGDx8eAoDzL7+p79Bn3/gYQGOlCHm/rT8m8SaVhl9+fdRHIiLGWhNzrUTjRqIxI1XVUSsisn7DxrJPPy3uWZdZWIICmfj1tK9EhGOxuLHGijUsbEXYsgin0vpYLOaKiLzy+qiHvSD8NyiFBOnY5ohmNG7Ki+FlpULlIvg1auiXSsaKmGBFXGh53OqNIlheuWVpvHo0wQNZoUJj9EMizlMiunDZDJz5xvlp/Vm/87QDwI33PN511ZqNbK11Y67lmBGpirNUxFjKYlZKoywbq61sqrYxKyJDn3/jJj8DqTPOJ/G7jjj+/FN+mDmvVETktTc++AZAA0drbEbEngAP3vvw8+e8W2Tj1nrslbEs0ZhrmUXWb9hY8egTw47ZLh5oM+NnAODm2wbdHIuzxGKxuOu6Yq31GvYDh+saFhF3xYrV5uqr79mLiPC78VckopKQuOX+YzFuwnysN4L1Ivil2sUKl50VxmZtEsHK2BYAaHDsQedJkeyBsVjWILHhISIUWVWCKz+5M6koEtniYQGJLOTTz795LHED4q6xUSNcEWcpiVpZX+lySZUbExF5b+yEHwHkbEOM8pvTOADgmOMvyP9h5jzXf1JjPoi+BNBIa515sSlhRcZ99tUgERFjrJsAj/9vIyJSWlpW+tprbx2VKNegzmcYFWkA2Z+N/3qCBxQ3ZoxhFhZmFrHCrutaKzYuIvLCKyMfrpVM/M3ti8nvbYTHn78J3/+0jmIizkaRnBXxeG6ZCNZuCYAeiT3gPClu7iMi4UEVgltmvIKDb9gtuZoob6s7KCnx9M+Y9fPQxEPjskhUxK2Mp56jj7/4el6bTgfup5RCpI56o/xMBscfn3fst9/NEBGReDxuWUR88k1efPndHwC00lol3VnCinz00RcPMYtUx123MmYkbqwws7jGWA885SUJt1WXlifzHJRS2L1L7y7jJ06enUFAu8n/sCxjPi4e6o17kq3f5FxUpOF3maBR2/YYM2mIXrI2Xj8mUr9cmNZWLNz870yMd3naHaxeFFG3zp6KvJcOTxtAta0WIRJRw/3fP/yVd6+eOn3uTytXreWyqris21Ai02fPW/PmyLEPA2iotUJR3bX5JkoiDb7/fuYCEZHK6qgrIsLMErcssbhxRURGvffJFAANlCL8+KOEPRpi3u3MIlWudUurDZdFjVTGrUTjPnjKyqsmT552SB0zz5sp2Odpb7FPswavvPmfR3+YMXf1uvUbpbyiWn75dWVs0ldTZg8Z/vqF/jk727HSndKm0199x4Fq0oxPQlERrC1Z9Rs32Y83HvrpX7j1ywIAoRRwts0a+DUtXUsNLvvci27sc/6lt9xx4dV3nQCgXm2ury6AJJGIysvL07Onzzt03doNG0REquKuqTYi1a6Vapcl5nogmvTN9C+BnVoAwKwfF93MLOIa61bGDVfGrVTErJRWxaxhkU2bSso++6y43460PB5wivRm3GL9a28pPPTiK++89KwLrumKVC9WosKbiPtom4EUDMDfGncyvpj0EYqLs7eMSifaFndVI/bxjxY33Hr/mc++8M6j997/1G0AGmV+/w03Dzj16edGPD3oseevPfXMmztv5vdsVwz0wgtv9Vi4aFmZiEhpVdxWxllihsVYFmM8dzZl2uzPfvjhp1u8GMc11gobyxJ1WcqjrjVWeNOm0pIxY8b32tHgCQKnQ5cj295y50PXvf3OuEdfevW9YwBkpOn1m98z4LF/DXvurWduuHnAqYlrTETI24776E/QT9yD0O93zBJtn7sKnHhu8+6tPxxTPGjm7J/XlFZUi+dCjEyZMf+XF179z3cvvzry1edeGjHhu2lzf1y9sTw5Ceznhcv4m+9mjo7c/+/DAiCi7cvCvBt93qXXH/Xj3AVVIiKVUdcaFrH+K+7HNeKpBDgRMDOLxF1jDbNs2LjJHfHu+/0B4Mknn8zCjpsaqwDg2hsL+3zz3cxRS5b+WhKNecPRSksrZer0uQtfeOXdCcOGv/7+GyNGfzP3p4XLY3EvnCwrr5Lps+b/8vLrHz4IoGkgEN+OSF5S8dEOJfv9gPmZF97vP+vHhesSN6TaiC2LiVsasyZWixShzBVbGrNutXdPRURk7dpN8vLrHz4NAH7lm+oilT/zzCuOnv/z4jIvoHYt+yl53Fipdo2NutZEXStxy8IiYnxglZdXVA999uVzd1S2lRG34fW3Rj+yYuWa4GWyrrGusbZWPYe11hhjTEAlI7Nmzf/5kivuPKJOQLSji9mJp2bEiM+O3FhS7j3lMRMvrXa5LMZSGmMpiYmURMWWRo0pj3mvsqixZTErZXGW8jhLZdxKVdw1ricbkjHjvnoRQL26sUQeiK6+7u5ePy9YWpIAkeemrERdK9WulSrXSrVhqfJkJrasvKJizLjPjvyD3FZo4lc/DE+CxnWNayy7zBJnKzHjBfIx15i4a4wx1lN0sJfWM7MYY9laL61fvGR59KJL/3VSXYUE2DHzlou0iNApZ1xxxMIlq2JREV5XHreboiIlUZaSKEtplKUsLlIeZ6mIs1TGWSpdKxWulQqXpcIVKXc9EFW4IqUxKxWuRy4+9Miwh+vqyU8w0nnnX9N79o/zS0VEKqJxW22sH1hbqXJZyqNxayzL+g0b5bU33z3Jy7Zkh2VbCXAP/fdbEd+Nxlxj2LJ4GaO1EvM/GmvFWp8HyjgSILLMEvX93pQps8qPOea01roOKZIdYX2o+OsZk0RE1pXH3A3VIiXVLKUxkbKYSHlcpMJ/VfoAqnK9/65wPVCVx1lKY9a3Vizrqiy7IvFfV62vPOOsG3uICNXFBUjcrP7Hn3PY5GmzK72YKGbjlsVlloqoy0ZEysrKy5999sX8Hey2kgXe/Q46Yd/5C3+tEhFTGXc5ziIus7jWpx2sZ4VMwNoIs89KcxJA1ksMJO5aqY561MWYcRNfDbLrfynrAwC33/1o73UllVwWF7O+0simaq9MUebXvpJWxwdQhV8DSwLITQCIpTTxMcZSHvXqO5998d3rdXkjEyDq3uvI47+ePL1aRMT1fAKLiFtZVb3p00+/6LujwROsG7717tgBIiJVMdet9N1o3NgkiLyXF7PZoPVh9nDELJY9C2X8DDPuumKMsatXr5frr490+5NdWc0yRuLiPjns9ZdERNZVGnd9FfsAsh54YiyVPogq4ukF1UT8Uxb3gFMWFyn1P18RZ6mKuSwiPG/BkvVduvSt722e3Ca1X617UwGg93HnHDpzzoINiXJLSWmFvPH2Byf+ESRhIHCu/833M+aKCFfGXFvtskSNRzXErQcGa1kMp14cAI5neaxY38UZG4yJPK7r2RdHDK61yBqJ7HAJMfnp/WbT9hlzFowUZtlYGXc3VfugibNUuZ7VqYixlMetlMetB5qYFxdtitrAywNShev9XMyIGCtsrOWNJeWxOyNP7fk7Q723AUSeJTrh1Au7z/95yezyyqjcfe8jAzyCfoeDB4msq+/xF+60cPHyamERYwybBFvuA8hlEevHNoY53SoZ67+MGGvTYyP2yjbMLHN/XvryZhOBbaBwnC0etfLumdZr1Wm6C066bBeMHvxdSivjWAChDevX7wHa3YQUWGky3mhigAXE/hTUYGOiILB02FNDSULRoknB0YBYJsMAQZit1fMW/tQRwLy5c7tS3c056G/89U3TWnVq2atZTstTH7n/1tcTg8n/KNt+wIHd4qFwKMrCIYBEExGEAa3Em9fIgQoFU0JP5a8lkUCTWjoCCAApQwB2bbNT7ZMvzr6yE94evgH5tBGKgBHvaOTn8/bIiCm5ftEvP6gLX7+OHv1pDe4c90ZK5Q/yOZrcD8eOr5IdeFRUVssZZ17aD0C21JELq01+8kfHCIlzybvwmp0WLvl1R15CWb9h0+seCTo2K7kuHQA++eYhfPXDUjz+2rkAsv1mvoRmiLbOAuUVaYw623pzmAF17usXqg4979QtOuzhNlCQlWVrg+JZYwwRUWzi11MHz1+wbF+2hpXWSoThulZZa7SIkCIFESbmxH5nr4lQO5pD2mGlNJNS1ptZ6LXoR2PVOW40rpmNMHNpTOkfAcSIaAdMXClkEaGRI0eqHbbKsvbORE9XWNVi43sfjotEo/G92BiyIjlKK8fRIUMkwiwgEbHCylrrKFJQ2is5KkXWcRwhEGmtE1vZBQCstYDAZmeFdWVF1TcA0Lp1hQmumdTOTJW7377t4jvv+4bptv+98u3EJ/jea19Ffn4USgH3jt/C7UqpGxPSpzxxqipYMF4/zpL7hEjuAyYWetIyXV2cmrSOP79LAn/XI69I/wX4FwUA+s2vvmu4yNqcGSYWXi7iLDeC8dN/UHcMvBFAky3koYUAhLLOHXk03TbzC3qwVPCICN0ftxhorfOgtfUfYwndt2o5Gu3bODPg8snExPi3xKu2cXIq8DFz7Fzmz6rgK2NF1d8XPJS5kjKVkGRco/Qxe5u/prqW6528loF7ojKkGwr75bWg79avcOYJ00yXMcu1mB03WCaCRVGhsVOWqCFvXAUgN7ipp3Y5R2TBLfqpmOhHRFAQY0SiBgPigvutYKCV0IC4UY+z4Kx3bgIAXPdz1h/c8OfRCBE/izjl0V1Rh+rFP+wcAMLR1/VPWvK+EadOp9RvyXv4+ecsAKCnRxVgoQimRQ1mxQU/uoJZccGMqMUcMaFlIjmrRDD6+68AOEHPExiy2c/7ZKPdWwJhoSo3BhUi6JCGqMTYdrisFMXIqr2PKcDpr/TH051jICWIFDt/BJfgr05iFJLBzV/3wunnf4szhvQBQTJ78v+SR6TYAUHCJ9/aOXz9v74I3fHaoyASTCw02zfOdysevuJiB1oLOneO6cJXj5F+R/wLVdYCUMmBm1oDTkgpgaaNccvVsGjeak9/X5jUHE9+xdQQnuvhYlDlAyqUc5eqtMaSv63En4WYwJxmK06uQ2w2VLsrZt+GYf1fBlCZXCzHhnbgCshmyHujje7c5Vpnp04XOM3qZ0eXLZli7+zQG4Q47qvTjYhUhx2xhGLR/o7TbBq1clzuTq37cpUls2Tuxzxj6tN2zMs/IVxvAxZ+XFYnY+3SfSPBcSS59RnIxWtfXqIP2OdhOI1ybYUrCDneHEO/Nyy5nJINU66j7Nrly9Cr7R4AYon3V8uQTUNsCYb9Jc6JaWWJqVYEsHbIVFkhNMvJ2r3f0+rWRTNw4Zg70OP6vcHWqXPwJILNs4f3VYN/XJZz+Ck/ZHXa/wqo+tlmjTXSuv2BGDB/DNr23Q2FZKCUbEeAmhzgpLUWrbVstzrS0xoL+pPJ2v+k3enFuWOpcet+1asMu9Waw7vvc6zzjws+wv2PL0CfI/byz1nVccwlsFaFjjpt7+zH371DfzR/htOn99MON8pFuRU4ocTOdq9BUfw8mRks4s3mdBwG4P5OY6EHElgGmJE2OFFSW3usUuS6EC5j6zTtsLva84SHnMPvnErXzvoeZ7zSrbaSxzYfI/O9nu4p701XKzd9TA3qO26JjcVdl2NaObwpxtSq81HqqpemqctfuRPM3ioo2br3EIlElCJKDnCy1oattTlExP4ALJU+YHkL1lKJeIvlmLPo1ucGxG8bOkXa7NWf11VbBmsTj6G6nGOuIkHj3S7Cy7dORlGRrrOthonzv/6RA/W4mRP5nqemmRPPeEi179wJG9i6cRZ2/HbX5DxMgoh3/wH/IycbC9MmCtW28tIzNERIDpz3Z0L7NSh/LqIAJOQKaapiJgZL9k6OtNlpf5SuvASgGwHRdeTX/Z1TVGaGfJxvLyt6Xx30j5PEVaB4zAgpRypdS407NEXPDg/qLkcfp5dMGRwn8sfhicacAvmtccA+E20BOM+9MOrMVjs1OScard7DGqvq1as3fvRHE94lok8CqzPlN29agT9lvxDQj046UbVtG6Fm7XqYGCBV1iLsaHKtQVbI4XrIwpdf3Il7j3rDHwRVdxxUvwKFAYXs9O5zJA7o1puXGbalMBCr4Cid7DxO64eXwA4NApGC1oCpZVeds9nxLtpzmxJYd+AVGigwu8OfYKZEedNejNWVDnOLticLcAeAeB36cn9RmYgQnSrh0VdSu/0fpZY751IlRKwliVtRRrPTpHUf3eDYPnLPDxMwZ8K/3Hz6IWkRamnBzsvzwHPR5bf1uu6aS4bvs/cee4fSr8xlvQ/tcdkZpx8z8rijz7pQa1W9WRB5I3sZhYXQFz7Sjw865n7Vvktv7WjYElhHsSJFRCoEaRpyzLq1VXb6vOtx71Evoji1TrvOguZ+YAhyuX7jq7GBWdgKNBzPy1gPPIl17UFKQaWmsWgRaAKMphqljZqQIrYS2NyXmqRH4OS4Ow6M1wtMP1ekOWZFWuzeHue/egoKiVFUp1yNZ4mUZh520rNSNKSbrFowXKtSCtXXSgHC1ii31HK8OmzRcf9+5tBzvqNbJ76EfS/bD4XENad/iRo16kx7442RHvfcce24A/bbY28r1pTFrS2NGq6Iuxy31jRt0tAee9SheTNnjv+A+YDcWkecelZScOptB+lh01/lYy/6gtrv09tWwEZLDBs2ZFkJGiul1EZjVy54wf5n+H64te+LEFF+gF13R5EoKMV4bEQ/btthF64SEUfpmtsmM6gdCqx58qc4CAFYv6ohgMbJ+c61zolePLGFWECMBKYzcGpKQ2KdgUj6ZjvvxkJYSCEkaN19EICcmosZ6gBEbL2q8bRHF8ldna/isU+dZlfMmYwwK4QcYmY21lVuadxKqGlI9jzsYlxaOBkXvXAXJNnj5g0TLgCYpd65F5z1744ddm1YFXNdKO1oIu1opTRpBSgnbqy21sa7det81Gtv3HtrYh5iRt8cVNH8O51Lb/uKO+x3gejG4ArXMoRIiCXHUazjKv7jV5OqRg8/zJzT+XK8fd8CFIlGna9hiCjkgSHSGHvu/bRSIZC15MW4weWwCK7druHOEnNV4QBYsawSQAhK12KBErtNV0xbDWYRklQeF4iFaq5JTOyD9LI0CoWVihrWrbruRpeNfwj5ZFGM7eryqPVILCEpEm3H3Pe+vW/vfnbiMzep9YvWOE1Cjs4KESntVfjLTQzN24TRpFMuIMAc770UFRUpIuKHH321/77d9uwOwIQcHUosjknMaDcsYCjELRwA3L37PpejXbvsxBJnzw/6V3r1xiOyGzQLhUvcmFIKIVLIru8o3Vw7WL1gjhS/eYZc16cvnrvrW4h4xer8uq67RRSkwDv3Nyc9pvfq2oEqjIgTUmlzookCHxGYuCtpQ6ZEhEUBaNf1AwDrYIyTQJgKLAHxPubU+0i7peS1QVItm5sDE8s2QwBb0lpVWKs69LoBZ799A/onUus6VvUVFjLyySKvSEPpKEbcNMRGTu8mC6cNVPH1LjXS2k8KCFUsaLj3N8GHJS8vjwCgTZump4Y0xDXWn/rlzeFJ7VP13LcFlDFWWrZs0ebs/qcfTkRSVOSn2xP8kNPSSFSzCAEhR1G4qda2umSZmTrpNlzWuSeevOQ/yeyQyILqmPKIRByo+xlErB9+9YXQIX0u0RutEVKKhOBNisoYZSfBAUOZ86IBIuWF9TOmrvHOdUItFmhkPgNC+PzllYhWrqIsx18SmrGDlWrZ9iJI260pIBhLmt1so7qdNgQ3Tn0M3KQBRpI3brauC6Aj8y3YenUdmrXWDuxxrzv6xe6y7Me3yZaTznHCxIpRsiJcY40WANfYPQWgqBWKWo/BSJy6SjttgrFWGjSqT337HtgWAFq0aEHBi8q7Hbw0ZhVs/VCWrVhhqmZ9Ndh9eEg33N73EShVgaIiDSKp8wUxkcRC4kID5iZ4tXi4nH7+pVwC1xVyWKnUyMLg3MvgvGjJWP3k71OVkKNMZRTYWPGRd679uLYgWlAEhY0zV5jKTRPcMACw9fc3pY+7T5teFrBG/hIPUgJoBbHsqLjDWbt0v1nfPnUKrio+MbnPK7JdbbebC7A5OWb48ztmy337nCOf/PtUs3Lh99IQGo3hAWjOBPKXwoUAZMXicUMicFngMmAT4rdAWKDIW9Cr/VS2Km5rD3h/md7B5WriBbPeNK8NOlRu6nM7vi8sQ6TYATPtgB3xhOJiJ7GPTN817Az6YN53dFC/K7iEjHE5JKRQc0xh4u4H4h8VnIfpPTqKLaMeiDeuXoTnnl7ob82W2rMwz40RFn/+EWJx8opmNn3oZsZK6FQ25v/RgEEmrcCiFJdbG2q22x7O7n1H4945xTjxwUNQ2N8AJOhb1/UrEhT2N8mW3LG3fSCRTgfj+w+vwZofPDXe3HUCACO//VYDsE5YjQWR5IRCkqW9Lc4JvVFgrjocBSilVMnGTfLJ2M8XAsCwYcO8My7o512oL4va4ZPXT5Eb9z0Pnw793hNsCXnni7p3VwRB//4mdNU9+ztFX38h/7jkXdltj86y0VpYcdK6STMHtgrVMhZR0r6FSFiFIPhpznismlaVSctQDTSTEjTctTEuHzcdTfZqB9cVKK2CY36TW3qSW5wT49BS+3sCK8a8P8OWtQK4oVZStcFgw0/PYtS5EfzyyyZ/eYqqM/a1NjluLXseEuPuzjjr+m5PPHrv9F13bs5x12jlOGRY/JXf3vmFFABh62itpkz/cfpBB+xzkEdJbSZ7qmX1Zp2eU1GeZ3FzW+zkPPXq/bTfQedyo2Y5vBEsxhAcnRpumVniDoYgJOlBtMqYuOoQU/UmJbddexzGj/jYm8Sbuk9ODTfwjtXIpxKs/PEttfNed+lysi4pldpg6GcblL76ILG9kMjjkCjTt5IoywA2uhZOEwc7974O5086CXPHDALRcADWW5EArtNamneyhCLx0tpA0OorEDURzbrg3FMf23Xn/rcqBZetdQSKmL0T1gowxnJ22OFozNXfTJ51r69Y1LXGInO7EnaEojEhWyHylKJ3P3k1+p1wO9p1bGfKAFlrLJTScFTNFd6ZpWEK1tMDX0jdPGhrLTUJazNjwXiMH/FZbSw5babkT3h5fCPnkrd+0A12bRsvtxBSqsYWl9+tX0vQDKX4BhHAwiDbcUi5QPnPn8jcUQ/jw0hxklPJ/8MkpeSzylnvvD/+s/xTDj+UAVTG2VoBiJQ4YKoXVjrmWox496MBF51zSmS7dmJs63AD/5roqwv7yxln36Za7HYsIwSutAaKtD80uubNoIA4IoiXzf23f990GBbRcm0ff7Q/3npwAv7xTo0aXe1oyBONkWTVua9fKPud+4qUswGx49k3FdinGdz8G0wPJTUlNmiFgjSAN6aVQSSqgdKIrYNUrXpMZo95BKPvXuPpcG2tpYcdBCIQUdao9z67Z+99Ot/QvmPb+ol+npgrWLBg0a8fj//yoVuvv2RYkYjO/6M00xFRuF8zmFHvpOtbVZ171v3UcY/LVYOm4I2wDCZo/+EmyYhzAhc9cUMSZQupJatWqc9r17XSKqz58+I3cMnh5/vWh7d02gL5NZ1sXPrlaOrc+3Apj1k44QANnj4C1ptfnA4oCVqf5Krp9IV1Hr7Yaq1VqBHIlK1eZ5Z9dz9eOO0ZAOy/cdlRU+ojkYgqKCggpcgmHt7+x17Q8cSTjzg1Kzu3hwLFSzasm3LXrXe8AZSWJDYPWWu1Rw/tKN2TEAQJl+Gox0Zdg3163oNd27TAJjAbK3CUTsYsRDUolZp3uhYGOtPyEAHGsmqogV+XrefITfth0n9W17K37Pdk0hEFup+xa78u6vw3x4fq79TSVBtY7SiSAEAoNRErtTlaAukLpVsjn6iTDGdMItDCNpSttc0G3A3zP5e1M27B8LNmJgPHug2yyXdDid8ZPv70Kw7Nzs6N/+etIV/X9v0XXn7reevXrZ370fuvzkhwSIEq/g5xV7jmocNUn2MfxR77HYgoIJXWikMaju+Wgql3xnVPSyGDgXKa1alZiQ9psRy22r40/Hw8ev0bvxVS/HZA0zfiYGKh0ee9dTjtfeJ4bRtYN+4qViGCsFedp8R09ER1PpDlScD3JojvgJkMkEvJbI2sFU1gaag1Y5Mra2Y+jWcuH4SKheugNHDvPdu/AhtCSmlhZhx+wgUHXXPJOdfsuVenI5s2abBz3GUs+2XVmMnfz5zYvvMeXxq3Mox4/MR99ul8QpvWrbqWVVbHf/119fwfZ/004qorIsOBeRt8IG6/lYxEFO4fyGALHHj8TvqyWwvRqdulXK+pRimzKCFoFVANJroKVZLB8FwZBfe2Z1gYpO88UemkoQYbNHEc+XrarXxBj0cRKXZ8CmIbBwYlfsE5b90W2veMh2007LKJOtCO10dKtZQzgjU0kXSXFdz6nEYpSDpfYV1GlkNoqAhrFy7B/PfvR9GtLwee0G3qmvRdlhCReuOt0Q8deGC3Wzvv3jZBlyb6fQkAKqpcaEXIyfY+GweMBRy/QoxZPy5c/dnn3955y00XvFJjUd7WuqtiJOSujnP78H/ikONu59a7tpYygbiW4SgFTQGLkyD+pGZqDvKAFSxZBEMO8n9PwlIRAWyhCHFqocM86v3P5KbTjt6S8IG2yqSeOHQQDrrodtgcwMYZTkhBEiUzyqAbpZY/EdwVjlrAk/H0CANiLHKyNUJRYN2MTzHvixvwn7vngQi1ZQW/1wHqaEcsWzVz1vyibvt0PqPawpZHrZBAZ4eIHEXQJNZxFBSgLCBxAzbWKlKkRDy9XlgTh7VyYnGLF196961/Xn3WRSJFTLSV7cDBJ/zKgQfpXkcOpfY9DhSjYaPG+tlVypIkKHEKWO+0/87YbUKZ+04yv4dAbAUkTC0dLR++951ce/pJENmEgoLfLblsaSnB41HyyeKIux5G75tuoJzmWaiyRpTWfhCTuvdJzpFqLOlNc1/J2kwwzZT0ZR9EgGUhxxGnMRRVrY7yhgUDzYOHPQ6gekvUhhnpevbXU+a80atHl9Mq49aNWYSUUsk9I4r8NUpeBO9nxX5h1VsxlHz7xloO+UB6/c0xt19w3kmDfV7JbiEZ6PFSexzZhm4ZcLdqv8dlul7TsCmFZbYKjkql5UnRl2RYkKBFQZrrIuXvvM10X8EsmtlSjqORC8j0Hx5DXvdCaFUOy1skBNyaWpSvsidB/rCeTqdjX3datt/dVgDGNSxQylPyB/epUu3bsCjo6iiVoamAe6PARfCFFVrE6rDSqj5g1iz52Z0/6V68eVHRlri1BG/zwOBnB99161W3VsddV8hTklsJUA8U3LFGflGVklLxxKVgf2GMa6zUy3bMmpXr9eDHXugx9Im7pv/jH//QI0eOtL8htUgSjermZ2+QQ467Q+/abicqBYyxVhyt0xMN1LA4ya+rzGxKUMNiZcabXvOEQGuhZkrR+nUx/uarQtx0+kPQGrD3qC2VItM2tcISMbB7w9BNrw2gFntc4Yab5kiZZcB4C8CCuaKfdaWW91I6eKgWpjSQZnrlNQKRJ6mFsCgBh+spzRJDbN3PH8rCaTfgnYuXbs6tRSIRNWDAAN5tj0M7f/DuyzO6dt09VFJldJajve1bksGoexvZkxpw8nv1k6Soz9eJDz7jurZxblgXT5ry3uF9Dzp9M1aIECnWCXelz771eD7x4pulVecjiDVQbYyEHA3lW3NQoHwltVwbqXGtkoRhMMNSmTGpFRJhNHK0wAI/fDsFY96/DiMem4xicdB/61qi1Da0hzAiokALy9wnet0Yn/b2gVj2zWTkikJWFsGy8XrI0vUfie166RR6IGugoIQypUNKNEF6y/QEUESslY5WMdvqLOvsss/J1OOkGTj/1SEQ2TnZjYG0rX9KRHDz9Vf367pXx5zqmAvHcUjSlHipmyDJDoUE7ZCiLChZ7wtU6ZVShiEdOrY7pv/x57QjIlvL/CJBYX8TarVXVxoy9jm+6JaPpO1eR6CKjFTHRULK8cQ6nLwsabVEydzhnhlCSrL5M7lYMGM9O7G1KqSJWjhafl2wGB+9fjbO63MQRjw2OSCp3aokYNt0OYXEEBAi4mDUtXPk6UMPwfQXLkPJz+vQJMvRygGBORUvyBaE8ZImcEyJ2SRNCcn+kjUmUi5Emw2uFWnaCAddcAPdPXsSThuc52UOKRD169dPAKBFyxZHeRsSBY4SiDBsUv8duGEBkCfD/cSes8A9SSRCWitiwO7cumXu6aedemgCtGmkbLu+jdVtz15rnnj/C+lx3OVimzM2uhYKDhyHMgFCQddVQwURUCol3jNnZMPB32eZFYnVLbRG9aoYf/tlBEcf2AO3XjwCWvsbe7aN8Vfb12JMnmxCacE7V7+IYRftjSVfD4Uuk6wGjgqJtZ4iiZKL0hCMN4LuLE2fW4vYW1J1NGFfo00W4igNdgWVMYPme3dQR15bhDsmHwtQjebC9u3bhay14u1596Z9GWPFtcxxy+wys/U66RgiiemV3ovBVoRdZnENS9wKu/50uZACw8RFgdmNVx6RtmoyUqxBJOqRocfKWVc9Lc06t8C6qIVrFZTSSRFX8iMl95QC7MWUUot6MM26ZPi3xPVjBtgYJ1cpClltZswYwy8/fRDOP2wAqHQTioo0rN0uxYBTJ7JSgBARQiGtxdO9r7NnvfYGOvV6JtSsY3eqBOJxa0GJyjX7LL1PhgWDaGSkpqAAZySpTcKJzycyEaUJUE44Xh1HvZxQrNU+3iqFLnlp4aMT0lprTUrrUBYAC5XY35rcXfx74m2blNeBdPAJ1GEFAGHHSSfd+vUDCkHs5DaHwDoxwzaUFUqRxBKQ4dQsVifZ/kSmSsFrgpSmJy3gFsBYS1kOqUZweOnCJfz9lDtQeE5RcqgUEdeFuM2pu4EHvtsogkI+TbbAgfbiz27Xbfa6UzXeuSFXxj2BjfYVTkIZgXOicTFDrUS17TROPIU6EIyTNwvAEcLy2e0BUEL7PMGXm06f/dOaqBvdEHNdQ0orpRQLRLTSVhGJ42jODodsOBRivwOXmJmYheJx1zHWKGMtkVJwHIdDjmMdrdmyVdXRKFnj5uY2zPnCW1c5wQeQb1uWLD6K2nTQXmknUc5JyWBqJVWF0rmxGvgKcma+9baWSWtQU0fT6l9h5yx6BJefPAgo2wgRSjY81uGYEewgwZPHcXTJ60I9L3oM7Q89FqFGkGjMekP8/BRBBWUpCdqDA6AKxk9pJJPXhh1oLsjmuLVNwzo26+txGNL7eETEQWFar1UWUoteElpdGzAsFoBBarF0wjApf3tRwkhJ4OcSuqAwvNFwG/3fEaA+uoacEeNmqqZt94xXWyalFWVSrsFYJ0j0pZGDgRIGZWhnRIQgjEZaE8UhS2Z9LG89NwjvPz8RBOCdHSOR2THjUPzReD43M1fmjjxOHz/odOl20kDVqsteUg2way0UNPxwN5kQpRW3xb9+gjR1f9pm4dR1dEkTYgC16bS3NGrXGF1HlnszdzwfT0QxAtbKZp4kqZ21SoDkt4ZtugCiBJRJknz04x+lDK4fdoI0a70nVxgLIi3MEN8SJXolEx3AKSAFZBfBcpDU5IXIiEVIazSExq+LFvKUz+/BA1e9k+6udoz8hP6IXeuQAvFrKvXoyo9vd9p1v1nqNa9nypkhTF4MU4setxYZLySDOEsQjj53kk3GoIHjVH03+k68ePIgDJcQrkymp7TFLnnbr48krfB751oYl0LPz54i7fc+gMstMymdeZ5BDoeC41aDLi2DXoMSwFohpYSaaiUb11fLzCnDcMvxAwCUQUQhP5+wWUKzbo4/YCKW1y2AvCINokoZfux97sQnD+b1P45VDaCQ4xCstcn5Q5KaRyTpLcPpfdwB5RxSi6oRZ9JuJSzt2bMQh1yahyvJhdLegIWIEBChWtiU2tgVbMH3pf9MJEIoKtIQ8chM42bhjhffk126dqcNRhhaJ7MkqQV3GQLOlMWh9KxLAHKtVfVCRA1E8YyvJ8lzg/rgluNvAVGZ3zrEOxo8+BPGwqVqagDUxW+djd0OeUia7tYOFYCYOCPR0ChBuUGA0aZgHJ2IlVSKnRUCjCuU7ZCULbD48f2BGHn7vwGs3mGC94go3O94MozEccWTHXX3Qx6SDt3zpARWAG/flpJU1kmUXhFPJgQBNxUU7ymAmFmFtVINAbNq8TL5YdK9GHDx62nuageJ7/4KAAqOP/FY7SZHNsJ5dz+odu52OXKbhlBmLEMUlPYC0MRIkQSAJBhUU6p+lkz92cOR6wqysghZANbNXYiVUydBhd7A2KE/49fvViTfx/aCyFNuCoBsHH1pN+x56F7UpuMZslu3w3WzxvVkEyyT6PTyQyZwkC5zUZQhiwFgjMBRrJtqTaXr42bxvOG485oISmdvSmZXhYUM/PHDHv+8w9deA4BzwsCDeJ/jn6Sd9u8pcUDixopWOk3TQunFzmSpgzyXR4HeWK+ViAWKBLkhRWEgZOJQ1atLTLx8ilky+2o8d/ai7VI6JgB4/bDu1PXA4ZS9U3fOaQNkK1AMEGMYjlZphU4JVtMpoNAMlnXSA2pitipXaw5ZyIIpEzHxo5vw+sDpyeln+fkWf+K0UPzpE0sTM3UArf753qVql+4DVaNdW9hyj+oVlRCNB/rSiFIXPRlfS4amKAk6JuWwJmjHAVEjwJSU/uJOeutovHvtfNx379ZborwijXfzLW56rRf1OrJYN2gdtpu8OQQQFiiopC4kQ3+TJltB0EVRsJYBsFgV1uQ0hrKrl66x07+7GwPOftnXiv/h7upPCqK3sCU5ElEgbfmZ054zI67e3y6ePMIJV5OurxWYbdK+J+tWEgi4g3JalWGuFKC0ghKHBeTGWHi1G0dOo7bYrdtzEA6joEC2WtpSlMeQXXLUPoe9pHJah80614CESCkF7Wgvs/QDtmSxLdAKjkCLE4JjcwgwImTYopHWbDaq+MxvhtvIFd0w4OwXoTQnBzP8yeDBX3C2clqQjbNfOkZ3OmiIatV1T64GbJw97ijBA2ZO1ArW1iQoCaGEogz+2haIiIVTSnj/tiMw8cUJyMvTW5y1JBSat71+Yeiw815xSmK2OpSlk7MoiPzYN5CkpcU7GXFP4FlSAqNylWPrAfLLj19i/Cd34eVbvvoT+uX+RCJxe6xRPlm/WEYg+sQC3XHtuNtV2+43UqMWDU0FGDbmCXSC0w8kOKbN0wRTmgabUpwcBLBxoH4ThZZdzwAwAXlFwMgtfJ5a+Ejdbb9eVkFAWtIGlXCqQEykavbGBRln5afo1lqllFJNlGPX/rpWflp4N27u/0IquwL/1cDzV3FhtQ9IIGKPO1JVduhxEfez4fvZRd9+QKpKISdLebojmyKowWnZGAVKARJQA5D4VQslHgXc7kBvM82crZD3HuEYAA1Ruu5IcUGWRSeGMXnuyqaNTyF/UCVRatptqkOXRTNb3djRgk1kZnz9ktx8aQ/c3P8FiJDPn9kdOHf7vxFAgZKIsDeu5bN7l8jjvU6Vr18+ldbNnk0NshwKZRFZselkXIpETi8ZJYalZ3Rrtuq6EQCwahptJdmcDTZNE+Mi0+cMUoDrTK93pUwVA3FrnSxFurHWsmbxJBnz5uG4ufelWPnpcm+iPckOGTjx/wZAASVfclzL+9d+IA92O4wWfXY38dpq1TSkFZGFMCeqqoliAAvA7E17SLWnCYTIq4oqAOR49/rs7rKVxQqCCHvjI4MqM+89iH9p04Rqkuh9Y0sCUBNHc8WqFWbymOv43I6H46UbijPGwfzlj7/PthtvgJLn1pQq4SFHP8jjnz6Qf535HnJcreuHlPKq4MntDF5Ww35ZJJilaSilvCEWjt7WxCMMZscjw1OSRmIvWKe0cos/7p9ZNGB1U60pXGll9sSX+cYTDuW7ThoKEf6ru6u/N4DSxtn5bu2TgXNk4H6n88z/nImqVbOymiknJwwiDkxWCwyLTAnNCQ6RPwXFvwQ/T9vajDQEE3eCVAJEUhNYgk6ULeC6RnIVSWNoWbf0Gx778jG4pd8lWD19mT+lFX91d/XfAaCabo3wwjlF9tbOR7hLZxaI2lgebqw1RAmsK5Ssl6VWNqjU2o/tfRfpH30yR0T8GFqgLFvlhATNQg5Kf1nLE/5zrT23/aF47sbxSXeV/9fgdP4/ASjo1vxKf+V6M2C/wugHTx0WWzrnP0qXE3KzSNhaL1vLmDi7/bcrDifLJPuygkEzC8Radpgl3FRrxRsJsyY/izsv3R8PnPHM3yG7+rvyQNszhSzRJjxDPis8Q06InEVdjnkY7Q5pCwMgbiw0tCfw9wdxiTfHUbbN7pQjt2E1HDRME3sxC4RYNwhpQgzxlYvf5y9GP4w3//Vdal8YGQSHT/6ND4X/piOYrX1UOEIe6bW//DTmLsRXl4eaOtrRxATLQgIr4kXcpDxAdN6KLMzDkEHIYeUAOtH3bF2G4xA1DmneuHieW1yUz5d2Pg1v/uu7v1t29f8TQMFsLSIKpDbimZMeklFDurlLZr0hukqpelpBjLGwYgCgfE0utnnZMqBCgCJhUsRomqNQvbJait8eJpd3PBhDLxjpCdkStau/t7v6/3hQ2hrMM185jh5YODn0okh4mCv6RTG4fepLafvTt+R3eo0lLfHwxPWhsWJyPhCh0Ubw8LfjcNg5+yTLFEV/ga3M/ztQN7rs1IKVXHXz1zeEB69aljVShO6d9sJWAkj5AGqPB8ZV0SQR9eLSBbhj9MkZq7Tpf9f9v+3wamv+P7q1xO0T3sbNo54GENzg8/sAIgJycnbGrS+tx9Af70ViK9GOWOPwv+Mv7tbQrME2olGjeZ/WCO5F/d/x/+kQgtTBMrxIsVPH+9D+Vsf/AUxRSOSecv//AAAAAElFTkSuQmCC" width="48" height="48" alt="SecOpsGrid logosu">
+      <div><b>SecOps<span class="grid">Grid</span></b><small>Security Operations, Connected.</small></div>
+    </div>
+    <nav class="nav" id="nav" aria-label="Ana menü"></nav>
+    <div id="adminBox"></div>
+    <div class="me-card" id="meCard"></div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <h1 id="pageTitle">Genel Bakış</h1>
+      <div class="top-actions">
+        <span class="updated">Son güncelleme: Az önce</span>
+        <div class="roleswitch" title="Demo için: aynı ekranı farklı yetki seviyeleriyle görün">
+          <span>Demo rolü</span>
+          <div class="seg" id="roleSeg" role="group" aria-label="Demo rolü"></div>
+        </div>
+        <label class="search" for="q">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Task, kişi, ekip ara" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <button class="btn icon-btn" id="bellBtn" aria-label="Bildirimler"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="dotn" id="bellDot" hidden></span></button>
+        <button class="btn primary" id="newBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg>Yeni Task</button>
+      </div>
+    </header>
+    <main id="view" class="view"></main>
+  </div>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-label="Ayrıntı"></aside>
+<div class="scrim" id="mscrim" hidden style="z-index:30"></div>
+<div class="modal-wrap" id="modalWrap" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+/* ---------- örnek organizasyon ---------- */
+const UNITS={OPS:{name:'Güvenlik Operasyonları',head:'AK'},ENG:{name:'Güvenlik Mühendisliği',head:'SE'}};
+const TEAMS={
+ 'TEAM-SOC':{name:'SOC',unit:'OPS',head:'MD'},
+ 'TEAM-WAF':{name:'WAF & Ağ Güvenliği',unit:'OPS',head:null},
+ 'TEAM-TI':{name:'Tehdit İstihbaratı',unit:'OPS',head:'OK'},
+ 'TEAM-PENTEST':{name:'Sızma Testi',unit:'ENG',head:'BT'},
+ 'TEAM-IAM':{name:'Kimlik & Erişim',unit:'ENG',head:'GO'},
+};
+const PEOPLE={
+ HA:{name:'Hakan Aydın',role:'dir'},
+ AK:{name:'Ayşe Korkmaz',role:'uh',unit:'OPS'},
+ SE:{name:'Selin Er',role:'uh',unit:'ENG'},
+ MD:{name:'Murat Demir',role:'th',team:'TEAM-SOC'},
+ OK:{name:'Okan Kurt',role:'th',team:'TEAM-TI'},
+ BT:{name:'Burak Tan',role:'th',team:'TEAM-PENTEST'},
+ GO:{name:'Gizem Oral',role:'th',team:'TEAM-IAM'},
+ EK:{name:'Elif Kaya',role:'emp',team:'TEAM-SOC'},
+ CY:{name:'Can Yılmaz',role:'emp',team:'TEAM-SOC'},
+ ZA:{name:'Zeynep Arslan',role:'emp',team:'TEAM-SOC'},
+ DS:{name:'Deniz Şahin',role:'emp',team:'TEAM-WAF'},
+ KO:{name:'Kerem Öztürk',role:'emp',team:'TEAM-WAF'},
+ SC:{name:'Sena Çelik',role:'emp',team:'TEAM-TI'},
+ NB:{name:'Nazlı Bulut',role:'emp',team:'TEAM-PENTEST'},
+ EY:{name:'Emre Yıldız',role:'emp',team:'TEAM-IAM'},
+};
+const ROLE_LABEL={emp:'Çalışan',th:'Team Head',uh:'Unit Head',dir:'Direktör'};
+const DEMO={emp:'EK',th:'MD',uh:'AK',dir:'HA'};
+const PRI={crit:'Kritik',high:'Yüksek',med:'Orta',low:'Düşük'}; const PRI_ORDER=['crit','high','med','low'];
+const REASONS=['Kapsam dışı','Kapasite yetersiz','Eksik bilgi','Yanlış ekip','Diğer'];
+const MONTHS=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+const TODAY=new Date(2026,10,18);
+
+/* ---------- örnek task'lar ---------- */
+const S=(who,state,label,at,note)=>({who,state,label,at,note});
+let tasks=[
+ {id:'GT-231',title:'Finans sunucusunda şüpheli PowerShell çalıştırmasını incele',pri:'crit',req:'MD',asg:{t:'user',id:'EK'},status:'Devam Ediyor',due:0,kind:'once',tags:['olay','EDR'],ref:'SIEM-88213',
+  desc:'EDR, FIN-SRV-04 üzerinde base64 kodlu PowerShell komutu yakaladı. Süreç ağacını çıkar, IOC’leri SIEM’e ekle.',
+  chain:[S('EK','ok','Yöneticisinden geldi, direkt kabul','09:15')],subs:[['Hostu ağdan izole et',true],['Bellek imajı al',true],['Süreç ağacını çıkar',false],['IOC listesini SIEM’e ekle',false]],
+  files:[['fin-srv-04_memdump_hash.txt','2 KB']],comments:[['MD','09:20','İzolasyon onaylandı, finans ekibine bilgi verdim.']],audit:[['09:12','Murat Demir oluşturdu ve Elif Kaya’ya atadı'],['09:15','Direkt kabul (yönetici → kendi çalışanı)'],['09:16','Durum: Devam Ediyor']]},
+ {id:'GT-230',title:'IDOR bulgusu için log korelasyon kuralı yaz',pri:'high',req:'NB',asg:{t:'user',id:'EK'},status:'Kabul Bekliyor',due:4,kind:'once',tags:['pentest','SIEM'],ref:'PT-2026-14',
+  desc:'Müşteri portalındaki IDOR bulgusunun istismar denemelerini yakalayacak bir SIEM kuralı gerekiyor.',
+  chain:[S('EK','wait','Çalışan kabulü'),S('MD','todo','Yönetici kabulü')],subs:[],files:[],comments:[],audit:[['10:20','Nazlı Bulut (TEAM-PENTEST) oluşturdu, Elif Kaya’ya atadı'],['10:20','Başka Unit’ten geldiği için iki aşamalı kabul başladı']]},
+ {id:'GT-229',title:'VPN imkânsız seyahat olayının kapanış raporunu hazırla',pri:'med',req:'ZA',asg:{t:'user',id:'EK'},status:'Kabul Bekliyor',due:2,kind:'once',tags:['olay','rapor'],ref:'SIEM-88190',
+  desc:'Olay kapandı, yönetim için kısa bir kapanış raporu gerekiyor. Taslak notlar ekte.',
+  chain:[S('EK','wait','Ekip arkadaşından geldi')],subs:[],files:[['vpn-olay-notlar.md','6 KB']],comments:[],audit:[['11:02','Zeynep Arslan oluşturdu, Elif Kaya’ya atadı']]},
+ {id:'GT-228',title:'Ayrılan çalışan hesaplarının SIEM’de izlenmesi',pri:'med',req:'EY',asg:{t:'user',id:'CY'},status:'Kabul Bekliyor',due:5,kind:'once',tags:['IAM','SIEM'],ref:'',
+  desc:'İK’dan gelen ayrılış listesindeki hesaplar için 30 gün boyunca oturum açma uyarısı kur.',
+  chain:[S('CY','ok','Çalışan kabulü','Dün 16:40'),S('MD','wait','Yönetici kabulü')],subs:[],files:[],comments:[],audit:[['Dün 15:10','Emre Yıldız (TEAM-IAM) oluşturdu'],['Dün 16:40','Can Yılmaz kabul etti, yöneticisinin kabulü bekleniyor']]},
+ {id:'GT-227',title:'Purple team tatbikatı için saldırı senaryolarını hazırla',pri:'med',req:'BT',asg:{t:'team',id:'TEAM-SOC'},status:'Ekip Havuzu',due:8,kind:'once',tags:['tatbikat'],ref:'',
+  desc:'26 Kasım tatbikatı için 3 senaryo (ilk erişim, yanal hareket, veri sızdırma) ve tespit beklentileri.',
+  chain:[S('MD','wait','Ekip yöneticisi delege eder')],subs:[],files:[],comments:[],audit:[['08:40','Burak Tan TEAM-SOC ekibine atadı, havuza düştü']]},
+ {id:'GT-226',title:'Haftalık zafiyet tarama raporu',pri:'med',req:'MD',asg:{t:'user',id:'ZA'},status:'Yapılacak',due:5,kind:'recur',recur:'Her Pazartesi 09:00',tags:['zafiyet','rapor'],ref:'',
+  desc:'Tarayıcı çıktısından kritik ve yüksek bulguları özetle, sahiplerine dağıt.',chain:[S('ZA','ok','Yöneticisinden geldi, direkt kabul')],subs:[],files:[],comments:[],audit:[['Pzt 09:00','Tekrarlayan task otomatik oluştu']]},
+ {id:'GT-225',title:'CVE-2024-6387 OpenSSH yaması sonrası doğrulama taraması',pri:'high',req:'AK',asg:{t:'user',id:'CY'},status:'Bloklu',due:-1,kind:'once',tags:['zafiyet','linux'],ref:'CR-4471',
+  blockReason:'Bakım penceresi onayı bekleniyor (CR-4471, Değişiklik Kurulu)',blockedFor:'26 saat',
+  desc:'23 Linux sunucuda yama sonrası doğrulama taraması.',chain:[S('CY','ok','Unit Head’den geldi, direkt kabul')],subs:[['Envanter',true],['Dalga 1 tarama',true],['Dalga 2 tarama',false]],files:[],comments:[['CY','Dün 09:30','Dalga 2 için bakım penceresi gerekiyor, CR açıldı.']],audit:[['Dün 09:31','Durum: Bloklu (neden: bakım penceresi onayı)']]},
+ {id:'GT-224',title:'Phishing simülasyonu sonuç analizi',pri:'low',req:'EK',asg:{t:'user',id:'EK'},status:'Yapılacak',due:3,kind:'once',tags:['farkındalık'],ref:'',
+  desc:'Kasım simülasyonunun tıklama ve bildirme oranlarını departman bazında çıkar.',chain:[S('EK','ok','Kendine atadı, otomatik kabul')],subs:[],files:[],comments:[],audit:[['Pzt 14:00','Elif Kaya kendine atadı']]},
+ {id:'GT-223',title:'Tehdit istihbaratı beslemesinin SIEM’e entegrasyonu',pri:'high',req:'MD',asg:{t:'user',id:'OK'},status:'Kabul Bekliyor',due:6,kind:'once',tags:['TI','SIEM'],ref:'',
+  desc:'MISP beslemesinden gelen IOC’lerin SIEM izleme listesine otomatik aktarımı.',chain:[S('OK','wait','Yöneticiden yöneticiye, karşı taraf kabulü')],subs:[],files:[],comments:[],audit:[['09:50','Murat Demir, Okan Kurt’a atadı']]},
+ {id:'GT-222',title:'ISO 27001 çeyreklik erişim gözden geçirmesi (Q4)',pri:'med',req:'HA',asg:{t:'user',id:'EY'},team0:'TEAM-IAM',status:'Devam Ediyor',due:9,kind:'once',tags:['uyumluluk','ISO27001'],ref:'',
+  desc:'12 kritik uygulamanın rol listelerini sahiplerine gönder, onayları topla.',chain:[S('GO','ok','Direktörden ekibe düştü, delege etti','Pzt 10:10'),S('EY','ok','Delege edildi')],subs:[['Rol listelerini çek',true],['Sahiplere gönder',false],['Onayları topla',false]],files:[],comments:[],audit:[['Pzt 10:00','Hakan Aydın TEAM-IAM ekibine atadı'],['Pzt 10:10','Gizem Oral, Emre Yıldız’a delege etti']]},
+ {id:'GT-221',title:'Kerberoasting tehdit avı (Event ID 4769, RC4)',pri:'med',req:'MD',asg:{t:'user',id:'EK'},status:'Yapılacak',due:null,kind:'backlog',tags:['tehdit avı','AD'],ref:'',
+  desc:'Hipotez: zayıf şifrelemeli servis biletleri talep eden hesaplar var.',chain:[S('EK','ok','Yöneticisinden geldi, direkt kabul')],subs:[],files:[],comments:[],audit:[['12 Kas','Backlog’a eklendi']]},
+ {id:'GT-220',title:'DLP politikası istisna talebinin değerlendirilmesi',pri:'med',req:'EK',asg:{t:'user',id:'EY'},status:'Reddedildi',due:1,kind:'once',tags:['DLP'],ref:'ITSM-55120',
+  desc:'Finans ekibinin dış paylaşım istisnası talebi.',chain:[S('EY','no','Çalışan kabulü','08:45','Kapsam dışı: DLP, Veri Güvenliği ekibinin sorumluluğunda.'),S('GO','todo','Yönetici kabulü')],
+  rejectReason:'Kapsam dışı',rejectNote:'DLP, Veri Güvenliği ekibinin sorumluluğunda.',rejectBy:'EY',subs:[],files:[],comments:[],audit:[['Dün 17:00','Elif Kaya, Emre Yıldız’a atadı'],['08:45','Emre Yıldız reddetti (Kapsam dışı)']]},
+ {id:'GT-219',title:'EDR ajan sağlık kontrolü',pri:'low',req:'MD',asg:{t:'user',id:'ZA'},status:'Tamamlandı',due:0,kind:'recur',recur:'Her gün 08:30',tags:['EDR'],ref:'',desc:'Devre dışı ajanları listele.',chain:[S('ZA','ok','Direkt kabul')],subs:[],files:[],comments:[],audit:[['09:05','Tamamlandı']]},
+ {id:'GT-218',title:'Firewall kural temizliği: kullanılmayan 140 kural',pri:'med',req:'AK',asg:{t:'user',id:'KO'},status:'Devam Ediyor',due:6,kind:'once',tags:['firewall'],ref:'CR-4460',desc:'Son 180 günde eşleşmeyen kuralları kaldır.',chain:[S('KO','ok','Unit Head’den geldi (ekipte Team Head yok), direkt kabul')],subs:[['Analiz',true],['Sahip onayı',false],['Kaldırma',false]],files:[],comments:[],audit:[]},
+ {id:'GT-217',title:'WAF’ta yeni SQLi imza setinin canlıya alınması',pri:'high',req:'BT',asg:{t:'team',id:'TEAM-WAF'},status:'Ekip Havuzu',due:2,kind:'once',tags:['WAF'],ref:'PT-2026-11',desc:'Pentest bulgusu sonrası imza seti v42.',chain:[S('AK','wait','Ekipte Team Head yok, Unit Head delege eder')],subs:[],files:[],comments:[],audit:[['10:05','Burak Tan TEAM-WAF ekibine atadı']]},
+ {id:'GT-216',title:'Yönetim için aylık güvenlik metrikleri sunumu',pri:'med',req:'HA',asg:{t:'user',id:'MD'},status:'Yapılacak',due:7,kind:'once',tags:['rapor'],ref:'',desc:'Kasım ayı SOC metrikleri.',chain:[S('MD','ok','Direktörden geldi, direkt kabul')],subs:[],files:[],comments:[],audit:[]},
+ {id:'GT-215',title:'Bulut hesaplarında MFA zorunluluğu denetimi',pri:'high',req:'SE',asg:{t:'user',id:'DS'},status:'Kabul Bekliyor',due:3,kind:'once',tags:['bulut','MFA'],ref:'',desc:'AWS ve Azure’daki tüm IAM kullanıcıları için MFA kontrolü.',chain:[S('DS','ok','Çalışan kabulü','09:30'),S('AK','wait','Yönetici kabulü (ekipte Team Head yok)')],subs:[],files:[],comments:[],audit:[['09:00','Selin Er (Güvenlik Mühendisliği) oluşturdu'],['09:30','Deniz Şahin kabul etti']]},
+ {id:'GT-214',title:'SOAR playbook: oltalama e-postası otomatik karantina',pri:'high',req:'MD',asg:{t:'user',id:'ZA'},status:'Devam Ediyor',due:-2,kind:'once',tags:['SOAR','e-posta'],ref:'',desc:'Bildirilen e-postaları otomatik analiz edip karantinaya alan playbook.',chain:[S('ZA','ok','Direkt kabul')],subs:[['Tasarım',true],['Test',false]],files:[],comments:[],audit:[]},
+];
+let nextId=232;
+
+/* ---------- etkinlik, yetkinlik, duyuru ---------- */
+let events=[
+ {id:'E1',kind:'int',title:'Q4 iletişim toplantısı',when:[20,10],time:'14:00–15:00',where:'Konferans salonu + Teams',org:'HA',aud:'all',rsvp:{EK:null,MD:'yes',AK:'yes',HA:'yes'}},
+ {id:'E2',kind:'int',title:'Purple team tatbikatı açılış brifingi',when:[26,10],time:'10:00',where:'SOC odası',org:'AK',aud:'OPS',rsvp:{EK:'yes',MD:'yes',AK:'yes'}},
+ {id:'E3',kind:'spk',title:'BSides İstanbul: “SOC’da LLM destekli triage”',when:[6,11],time:'Tüm gün',where:'BSides İstanbul',person:'EK',approver:'MD',status:'wait'},
+ {id:'E4',kind:'ext',title:'SANS SEC555 SIEM eğitimi',when:[12,0],time:'12–17 Ocak',where:'SANS, Amsterdam',person:'CY',approver:'MD',status:'ok'},
+ {id:'E5',kind:'spk',title:'ODTÜ Siber Güvenlik Haftası paneli',when:[3,11],time:'15:00',where:'ODTÜ Kültür ve Kongre Merkezi',person:'AK',approver:'HA',status:'ok'},
+ {id:'E6',kind:'ext',title:'Black Hat MEA katılımı',when:[1,11],time:'1–3 Aralık',where:'Riyad',person:'NB',approver:'BT',status:'wait'},
+ {id:'E7',kind:'ext',title:'Kubernetes güvenliği atölyesi',when:[9,11],time:'09:30–17:00',where:'Bilgi Üniversitesi',person:'DS',approver:'AK',status:'wait'},
+];
+const certs=[
+ {who:'EK',name:'GIAC GCIH',exp:410},{who:'EK',name:'Splunk Core Certified Power User',exp:21},
+ {who:'CY',name:'OSCP',exp:null},{who:'ZA',name:'CompTIA CySA+',exp:-12},{who:'MD',name:'CISSP',exp:180},
+ {who:'DS',name:'F5 BIG-IP ASM',exp:45},{who:'NB',name:'OSCP',exp:null},{who:'AK',name:'CISM',exp:300},{who:'EY',name:'Microsoft SC-300',exp:14},
+];
+const anns=[
+ {title:'Yeni parola politikası 1 Aralık’ta yürürlüğe giriyor',body:'Minimum 14 karakter ve ayrıcalıklı hesaplarda donanım anahtarı zorunlu.',aud:'all',by:'HA',date:'17 Kas'},
+ {title:'Unit içi bilgi paylaşım oturumu her Cuma 16:00',body:'Bu hafta konu: Kerberoasting tespiti (Elif Kaya).',aud:'OPS',by:'AK',date:'15 Kas'},
+ {title:'SOC vardiya devri formu güncellendi',body:'Açık olaylar bölümüne “bekleyen karar” alanı eklendi.',aud:'TEAM-SOC',by:'MD',date:'14 Kas'},
+ {title:'IAM erişim talepleri yeni forma taşındı',body:'Eski e-posta kanalı 1 Aralık’ta kapanıyor.',aud:'ENG',by:'SE',date:'13 Kas'},
+];
+
+/* ---------- rapor örnek verisi (son 30 gün) ---------- */
+const TEAM_STATS={
+ 'TEAM-SOC':{opened:46,closed:39,mttr:18,wait:3.2,block:6.5,overdue:3,rejIn:4,ontime:88},
+ 'TEAM-WAF':{opened:22,closed:17,mttr:26,wait:5.1,block:11,overdue:2,rejIn:2,ontime:79},
+ 'TEAM-TI':{opened:15,closed:12,mttr:31,wait:2.4,block:4,overdue:1,rejIn:1,ontime:91},
+ 'TEAM-PENTEST':{opened:18,closed:14,mttr:42,wait:6.8,block:9.5,overdue:2,rejIn:1,ontime:74},
+ 'TEAM-IAM':{opened:27,closed:24,mttr:22,wait:4,block:7.2,overdue:1,rejIn:3,ontime:85},
+};
+const MEMBER_STATS={EK:[14,16,86,1],CY:[11,21,82,0],ZA:[9,19,90,1],MD:[5,25,80,0],DS:[8,27,75,1],KO:[9,24,81,0],SC:[6,29,92,0],OK:[6,33,90,1],NB:[7,40,71,0],BT:[7,44,77,1],EY:[13,20,86,2],GO:[11,24,84,1]};
+const REJ_REASONS=[['Kapsam dışı',41],['Kapasite yetersiz',27],['Eksik bilgi',18],['Yanlış ekip',14]];
+const REJ_FLOWS=[['TEAM-SOC','TEAM-IAM',2],['TEAM-PENTEST','TEAM-SOC',3],['TEAM-IAM','TEAM-SOC',1],['TEAM-WAF','TEAM-PENTEST',1],['TEAM-TI','TEAM-WAF',1]];
+
+/* ---------- bildirimler ---------- */
+const notifs={
+ EK:[{t:'10:20',txt:'Nazlı Bulut size GT-230 atadı. Kabulünüz bekleniyor.',task:'GT-230',unread:true},{t:'11:02',txt:'Zeynep Arslan size GT-229 atadı.',task:'GT-229',unread:true},{t:'08:45',txt:'GT-220 Emre Yıldız tarafından reddedildi: Kapsam dışı.',task:'GT-220',unread:true},{t:'Dün',txt:'Splunk sertifikanızın süresi 21 gün içinde doluyor.',unread:false}],
+ MD:[{t:'Dün 16:40',txt:'GT-228: Can Yılmaz kabul etti, sizin kabulünüz bekleniyor.',task:'GT-228',unread:true},{t:'08:40',txt:'TEAM-SOC havuzuna yeni task düştü: GT-227.',task:'GT-227',unread:true},{t:'08:00',txt:'Elif Kaya BSides İstanbul konuşmacılığı için onay istedi.',unread:true}],
+ AK:[{t:'09:30',txt:'GT-215: Deniz Şahin kabul etti, sizin kabulünüz bekleniyor.',task:'GT-215',unread:true},{t:'10:05',txt:'TEAM-WAF havuzuna yeni task düştü: GT-217.',task:'GT-217',unread:true},{t:'07:00',txt:'Eskalasyon: GT-214 termini 2 gün geçti.',task:'GT-214',unread:false}],
+ HA:[{t:'07:00',txt:'Eskalasyon: GT-225 termini geçti ve 26 saattir bloklu.',task:'GT-225',unread:true},{t:'Dün',txt:'Ayşe Korkmaz ODTÜ paneli için onay istedi (onaylandı).',unread:false}],
+};
+const PREF_EVENTS=['Yeni task atandı','Kabul / ret kararı','Task bloklandı','Termin yaklaşıyor veya geçti','Eskalasyon','Sertifika bitişi','Etkinlik daveti','Yeni duyuru'];
+const prefs=PREF_EVENTS.map((e,i)=>[true,i<6]);
+
+/* ---------- durum ---------- */
+let role='emp', q='', boardScope='all', priF=new Set(), teamF='', kindF='', drawerTask=null, rTeam='', rUnit='', rRange='30';
+const me=()=>DEMO[role];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P=id=>PEOPLE[id]; const nm=id=>P(id)?.name||id;
+const initials=id=>P(id).name.split(' ').map(w=>w[0]).join('');
+const av=(id,cls='')=>`<span class="av ${cls}" title="${esc(nm(id))}">${initials(id)}</span>`;
+const asgAv=t=>t.asg.t==='team'?`<span class="av team" title="${t.asg.id}">${t.asg.id.replace('TEAM-','')}</span>`:av(t.asg.id);
+const asgName=t=>t.asg.t==='team'?t.asg.id:nm(t.asg.id);
+function now(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function dateOf(off){const d=new Date(TODAY);d.setDate(d.getDate()+off);return d}
+function fmtDue(off){if(off==null)return'Termin yok';if(off===0)return'Bugün';if(off===1)return'Yarın';if(off<0)return(-off)+' gün gecikti';const d=dateOf(off);return d.getDate()+' '+MONTHS[d.getMonth()]}
+const dueCls=t=>t.due==null||t.status==='Tamamlandı'?'':t.due<0?'late':t.due<=1?'soon':'';
+const dueChip=t=>`<span class="due ${dueCls(t)}">${fmtDue(t.due)}</span>`;
+const ST_CLS={'Kabul Bekliyor':'wait','Ekip Havuzu':'pool','Yapılacak':'','Devam Ediyor':'prog','Bloklu':'block','Tamamlandı':'done','Reddedildi':'rej','İptal':''};
+const stPill=s=>`<span class="st ${ST_CLS[s]}">${s}</span>`;
+const kindChip=t=>t.kind==='recur'?`<span class="kind" title="${esc(t.recur)}">${ICON.repeat} Tekrarlayan</span>`:t.kind==='backlog'?`<span class="kind">${ICON.stack} Backlog</span>`:'';
+const ICON={
+ repeat:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>',
+ stack:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg>',
+ check:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg>',
+ x:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+ clock:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ dot:'<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg>',
+ block:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>',
+ info:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+ lock:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+ close:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+ file:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/></svg>',
+};
+
+/* ---------- hiyerarşi ve yetki kuralları ---------- */
+function teamHeadOf(teamId){const t=TEAMS[teamId];return t.head||UNITS[t.unit].head}
+function unitOf(id){const p=P(id);return p.unit||(p.team?TEAMS[p.team].unit:null)}
+function respMgr(id){const p=P(id);if(p.role==='dir')return null;if(p.role==='uh')return'HA';if(p.role==='th')return UNITS[unitOf(id)].head;return teamHeadOf(p.team)}
+function isManagerOf(m,id){if(!id||m===id)return false;if(P(m).role==='dir')return true;if(respMgr(id)===m)return true;const u=unitOf(id);return P(m).role==='uh'&&P(m).unit===u}
+function managedTeams(id){const p=P(id);if(p.role==='dir')return Object.keys(TEAMS);if(p.role==='uh')return Object.keys(TEAMS).filter(k=>TEAMS[k].unit===p.unit);if(p.role==='th')return Object.keys(TEAMS).filter(k=>TEAMS[k].head===id);return[]}
+function teamOfPerson(id){const p=P(id);return p.team||null}
+function membersOf(teamId){return Object.keys(PEOPLE).filter(k=>PEOPLE[k].team===teamId)}
+const asgUser=t=>t.asg.t==='user'?t.asg.id:null;
+const isMgrRole=id=>['th','uh','dir'].includes(P(id).role);
+
+/* Kabul akışı (Q3, Q7, Q28) */
+function flowFor(req,target){
+ if(target.t==='team'){const h=teamHeadOf(target.id);const noTH=!TEAMS[target.id].head;
+  return{status:'Ekip Havuzu',steps:[{who:h,label:noTH?'Ekipte Team Head yok, Unit Head delege eder':'Ekip yöneticisi delege eder'}],
+   text:P(req).role==='dir'?`Direktör ataması: task doğrudan ${target.id} havuzuna düşer, ${nm(h)} bir çalışana delege eder.`:`Task ${target.id} havuzuna düşer. ${nm(h)} kabul edip bir çalışana delege eder.`}}
+ const u=target.id;
+ if(u===req)return{status:'Yapılacak',steps:[],auto:'Kendine atadı, otomatik kabul',text:'Kendinize atıyorsunuz. Onay gerekmez, task hemen “Yapılacak” olur.'};
+ if(P(req).role==='dir')return{status:'Yapılacak',steps:[],auto:'Direktörden geldi, direkt kabul',text:'Direktör ataması onaysız olarak doğrudan kişiye düşer.'};
+ if(isManagerOf(req,u))return{status:'Yapılacak',steps:[],auto:'Yöneticisinden geldi, direkt kabul',text:`${nm(u)} sizin ekibinizde. Task onaysız olarak doğrudan ona düşer.`};
+ if(isMgrRole(req)&&isMgrRole(u))return{status:'Kabul Bekliyor',steps:[{who:u,label:'Yöneticiden yöneticiye, karşı taraf kabulü'}],text:`Yöneticiden yöneticiye atama: ${nm(u)} kabul veya ret verir.`};
+ const sameTeam=teamOfPerson(req)&&(teamOfPerson(req)===teamOfPerson(u)||respMgr(req)===u);
+ if(sameTeam)return{status:'Kabul Bekliyor',steps:[{who:u,label:respMgr(req)===u?'Çalışandan yöneticisine, kabul gerekir':'Ekip arkadaşından geldi'}],text:`Aynı ekip içi atama: ${nm(u)} kabul veya ret verir.`};
+ const m=respMgr(u);
+ return{status:'Kabul Bekliyor',steps:[{who:u,label:'Çalışan kabulü'},{who:m,label:'Yönetici kabulü'}],text:`Başka ekipten atama: önce ${nm(u)}, ardından yöneticisi ${nm(m)} kabul eder.`};
+}
+
+/* Görünürlük (Q9) */
+function related(t){const r=[t.req];if(asgUser(t))r.push(asgUser(t));t.chain.forEach(s=>s.state!=='todo'&&r.push(s.who));return r}
+function canSee(t,id=me()){
+ const p=P(id); if(p.role==='dir')return true;
+ const rel=related(t);
+ if(rel.includes(id))return true;
+ const tTeam=t.asg.t==='team'?t.asg.id:t.team0;
+ if(p.role==='emp')return tTeam===p.team && t.status!=='Kabul Bekliyor';
+ const mt=managedTeams(id);
+ if(tTeam&&mt.includes(tTeam))return true;
+ if(t.status==='Kabul Bekliyor'){const pending=t.chain.filter(s=>s.state==='wait').map(s=>s.who);return pending.some(w=>isManagerOf(id,w))||isManagerOf(id,asgUser(t))||isManagerOf(id,t.req)}
+ return rel.some(r=>{const tm=teamOfPerson(r);return tm&&mt.includes(tm)||isManagerOf(id,r)});
+}
+function canChangeStatus(t,id=me()){
+ if(P(id).role==='dir')return true;
+ const a=asgUser(t); if(!a)return false;
+ return a===id||isManagerOf(id,a);
+}
+function pendingStepFor(t,id=me()){return t.chain.find(s=>s.state==='wait'&&s.who===id&&['Kabul Bekliyor','Ekip Havuzu'].includes(t.status))}
+
+/* ---------- yardımcılar ---------- */
+function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
+function notify(id,txt,task){if(!notifs[id])return;notifs[id].unshift({t:now(),txt,task,unread:true})}
+function log(t,txt){t.audit.push([now(),txt])}
+function matchesQ(t){if(!q)return true;const h=[t.id,t.title,asgName(t),nm(t.req),t.ref,t.tags.join(' '),t.team0||''].join(' ').toLocaleLowerCase('tr');return h.includes(q)}
+const visibleTasks=()=>tasks.filter(t=>canSee(t));
+function approvalsFor(id=me()){
+ const items=[];
+ tasks.forEach(t=>{const s=pendingStepFor(t,id);if(s)items.push({type:t.status==='Ekip Havuzu'?'pool':'task',t,s})});
+ events.forEach(e=>{if(e.approver===id&&e.status==='wait')items.push({type:'event',e})});
+ if(P(id).role==='emp'||true)events.forEach(e=>{if(e.kind==='int'&&e.rsvp&&id in e.rsvp&&e.rsvp[id]===null)items.push({type:'rsvp',e})});
+ if(isMgrRole(id))tasks.forEach(t=>{if(canSee(t,id)&&t.due!=null&&t.due<0&&!['Tamamlandı','İptal','Reddedildi'].includes(t.status)&&asgUser(t)!==id)items.push({type:'esc',t})});
+ return items;
+}
+
+/* ---------- navigasyon ---------- */
+const VIEWS=[
+ ['ana','Genel Bakış','<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>'],
+ ['onaylar','Onay kutusu','<path d="M4 4h16v12H4z"/><path d="M4 16l3 4h10l3-4"/><path d="M9 10l2 2 4-4"/>'],
+ ['gorevler','Task panosu','<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/>'],
+ ['etkinlikler','Etkinlik & yetkinlik','<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'],
+ ['raporlar','Raporlar','<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
+ ['organizasyon','Organizasyon','<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12M5 16.5V12h14v4.5"/>'],
+ ['entegrasyon','API & MCP','<path d="M8 8 4 12l4 4M16 8l4 4-4 4M14 5l-4 14"/>'],
+];
+function allowedViews(){return VIEWS.filter(v=>v[0]!=='organizasyon'||['uh','dir'].includes(role))}
+function current(){const h=location.hash.slice(1);return allowedViews().some(v=>v[0]===h)?h:'ana'}
+function renderShell(){
+ const v=current(), n=approvalsFor().length;
+ $('#nav').innerHTML=allowedViews().filter(x=>x[0]!=='organizasyon').map(x=>`<a href="#${x[0]}" ${x[0]===v?'aria-current="page"':''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${x[2]}</svg>${x[1]}${x[0]==='onaylar'&&n?`<span class="badge">${n}</span>`:''}</a>`).join('');
+ const p=P(me()), where=p.team?`${p.team} · ${UNITS[TEAMS[p.team].unit].name}`:p.unit?UNITS[p.unit].name:'Siber Güvenlik Direktörlüğü';
+ $('#meCard').innerHTML=`${av(me(),'lg gold')}<div class="who"><b>${esc(p.name)}</b><small>${ROLE_LABEL[p.role]} · ${esc(where)}</small></div><button class="btn icon-btn sm ghost" data-demo="Çıkış" aria-label="Çıkış yap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4H5v16h9"/><path d="M10 12h10M17 8l4 4-4 4"/></svg></button>`;
+ $('#adminBox').innerHTML=['uh','dir'].includes(role)?`<a class="admin-box" href="#organizasyon" ${v==='organizasyon'?'aria-current="page"':''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2 20 5v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z"/><circle cx="12" cy="11" r="2.5"/></svg>Yönetim Paneli<span class="admin-badge">${role==='dir'?'DİREKTÖR':'UNIT HEAD'}</span></a>`:'';
+ $('#roleSeg').innerHTML=Object.keys(DEMO).map(k=>`<button data-role="${k}" aria-pressed="${k===role}">${ROLE_LABEL[k]}</button>`).join('');
+ $('#bellDot').hidden=!(notifs[me()]||[]).some(x=>x.unread);
+}
+function render(){renderShell();({ana:renderHome,onaylar:renderApprovals,gorevler:renderBoard,etkinlikler:renderEvents,raporlar:renderReports,organizasyon:renderOrg,entegrasyon:renderApi})[current()]();
+ const h=$('#view .head-row h1');$('#pageTitle').textContent=h?h.textContent:'Genel Bakış';if(h){const hr=h.closest('.head-row');h.remove();const box=hr.firstElementChild;if(box&&!box.textContent.trim())box.remove();if(!hr.textContent.trim())hr.remove()}}
+
+/* ---------- Ana sayfa ---------- */
+function taskRow(t,side){return `<button class="row" data-open="${t.id}"><span class="stripe p-${t.pri}"></span><span class="row-main"><span class="row-title">${esc(t.title)}</span><span class="row-meta"><span class="id">${t.id}</span>${stPill(t.status)}${kindChip(t)}<span>${t.req===me()?'Siz açtınız':'Açan: '+esc(nm(t.req))}</span></span></span><span class="row-side">${side??dueChip(t)}${asgAv(t)}</span></button>`}
+const TI={
+ shield:'<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 20 5v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z"/></svg>',
+ inbox:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ warn:'<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17v.5" stroke="#121D33" stroke-width="2.2" stroke-linecap="round"/></svg>',
+ trend:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
+};
+function smoothPath(pts,base){let d=`M${pts[0][0]},${pts[0][1]}`;for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;
+ const c1=[p1[0]+(p2[0]-p0[0])/6,Math.min(base,p1[1]+(p2[1]-p0[1])/6)],c2=[p2[0]-(p3[0]-p1[0])/6,Math.min(base,p2[1]-(p3[1]-p1[1])/6)];
+ d+=` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`}return d}
+function areaChart(opened,closed,labels){
+ const W=880,H=330,L=46,R=52,T=18,B=40,iw=W-L-R,ih=H-T-B;
+ const mx=Math.max(...opened,...closed), step=mx>40?20:mx>20?10:5, top=Math.ceil(mx/step)*step||step;
+ const x=i=>L+i*(iw/(labels.length-1)), y=v=>T+ih-(v/top)*ih, base=T+ih;
+ const po=opened.map((v,i)=>[x(i),y(v)]), pc=closed.map((v,i)=>[x(i),y(v)]);
+ const ticks=[];for(let v=0;v<=top;v+=step)ticks.push(v);
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Son 7 günde açılan ve kapanan task sayıları">
+  ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#1F2D4A" stroke-width="1"/><text x="${L-10}" y="${y(v)+4}" text-anchor="end" fill="#94A2BB" font-size="13">${v}</text>`).join('')}
+  ${labels.map((l,i)=>`<text x="${x(i)}" y="${H-12}" text-anchor="middle" fill="#94A2BB" font-size="14">${l}</text>`).join('')}
+  <path d="${smoothPath(po,base)} L${x(labels.length-1)},${base} L${L},${base} Z" fill="rgba(29,79,215,.28)"/>
+  <path d="${smoothPath(po,base)}" fill="none" stroke="#2F5FE0" stroke-width="2.5"/>
+  <path d="${smoothPath(pc,base)}" fill="none" stroke="#34D399" stroke-width="2" stroke-dasharray="6 5"/>
+  ${pc.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#34D399"/>`).join('')}
+  ${po.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#F5C518" stroke="#121D33" stroke-width="2"><title>${labels[i]}: ${opened[i]} açılan, ${closed[i]} kapanan</title></circle>`).join('')}
+ </svg>`;
+}
+function donut(parts){
+ const total=parts.reduce((a,p)=>a+p.v,0)||1, r=78, c=2*Math.PI*r; let off=0;
+ const segs=parts.filter(p=>p.v).map(p=>{const len=p.v/total*c;const s=`<circle cx="110" cy="110" r="${r}" fill="none" stroke="${p.color}" stroke-width="30" stroke-dasharray="${len.toFixed(2)} ${(c-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 110 110)"><title>${p.l}: ${p.v}</title></circle>`;off+=len;return s}).join('');
+ return `<svg viewBox="0 0 220 220" role="img" aria-label="Açık task’ların öncelik dağılımı"><circle cx="110" cy="110" r="${r}" fill="none" stroke="#19263F" stroke-width="30"/>${segs}
+  <text x="110" y="108" text-anchor="middle" fill="#F2F5FA" font-size="34" font-weight="800">${parts.reduce((a,p)=>a+p.v,0)}</text><text x="110" y="132" text-anchor="middle" fill="#94A2BB" font-size="13">açık task</text></svg>`;
+}
+function renderHome(){
+ const id=me(), p=P(id), vis=visibleTasks();
+ const isOpen=t=>!['Tamamlandı','İptal','Reddedildi'].includes(t.status);
+ const mine=vis.filter(t=>asgUser(t)===id&&['Yapılacak','Devam Ediyor','Bloklu'].includes(t.status)).sort((a,b)=>(a.due??99)-(b.due??99));
+ const appr=approvalsFor(id);
+ const scope=p.role==='emp'?vis.filter(t=>isOpen(t)&&(asgUser(t)===id||t.req===id)):vis.filter(isOpen);
+ const late=scope.filter(t=>t.due!=null&&t.due<0).length;
+ const f={emp:.25,th:.55,uh:1,dir:1.7}[p.role];
+ const opened=[14,22,9,13,19,26,12].map(v=>Math.max(1,Math.round(v*f))), closed=[11,17,13,10,16,21,8].map(v=>Math.max(1,Math.round(v*f)));
+ const labels=['2026-11-12','2026-11-13','2026-11-14','2026-11-15','2026-11-16','2026-11-17','2026-11-18'];
+ const weekClosed=closed.reduce((a,b)=>a+b,0);
+ const parts=[{l:'Kritik',color:'#EF5350',v:scope.filter(t=>t.pri==='crit').length},{l:'Yüksek',color:'#F5C518',v:scope.filter(t=>t.pri==='high').length},{l:'Orta',color:'#4A7DF7',v:scope.filter(t=>t.pri==='med').length},{l:'Düşük',color:'#8C9CB7',v:scope.filter(t=>t.pri==='low').length}];
+ const hot=scope.filter(t=>['crit','high'].includes(t.pri)).sort((a,b)=>PRI_ORDER.indexOf(a.pri)-PRI_ORDER.indexOf(b.pri)||(a.due??99)-(b.due??99)).slice(0,6);
+ const evs=events.filter(e=>eventVisible(e)).sort((a,b)=>evDate(a)-evDate(b)).slice(0,3);
+ const myAnns=anns.filter(a=>annVisible(a)).slice(0,2);
+ const myCerts=certs.filter(c=>c.exp!=null&&c.exp<=60&&certVisible(c));
+ const teamTable=isMgrRole(id)?managedTeams(id).flatMap(tm=>membersOf(tm)).filter(m=>m!==id):[];
+ $('#view').innerHTML=`
+ <div class="head-row"><h1>Genel Bakış</h1><p class="sub">Günaydın ${esc(p.name.split(' ')[0])}. 18 Kasım 2026 Çarşamba · ${ROLE_LABEL[p.role]} görünümü${isMgrRole(id)?` · sorumluluğunuzda ${managedTeams(id).length} ekip`:''}</p></div>
+ <section class="tiles" aria-label="Özet">
+  <div class="tile"><span class="ti blue">${TI.shield}</span><span class="tx"><span class="lbl">${p.role==='emp'?'Açık Task’larım':'Açık Task'}</span><span class="val">${scope.length}</span></span></div>
+  <button class="tile" data-go="onaylar"><span class="ti gold">${TI.inbox}</span><span class="tx"><span class="lbl">Onayınızı Bekleyen ↗</span><span class="val">${appr.length}</span></span></button>
+  <div class="tile"><span class="ti red">${TI.warn}</span><span class="tx"><span class="lbl">Geciken Task</span><span class="val">${late}</span></span></div>
+  <div class="tile"><span class="ti green">${TI.trend}</span><span class="tx"><span class="lbl">Bu Hafta Kapanan</span><span class="val">${weekClosed}</span></span></div>
+ </section>
+ <div class="grid2">
+  <section class="panel"><div class="panel-head"><h2>Haftalık Task Trendi</h2><div class="legend"><span><i style="background:#F5C518"></i>Açılan</span><span><i style="background:#34D399"></i>Kapanan</span></div></div><div class="chart-wrap">${areaChart(opened,closed,labels)}</div></section>
+  <section class="panel"><h2>Öncelik Dağılımı</h2><div class="donut-box">${donut(parts)}<div class="legend vert">${parts.map(x=>`<span><i style="background:${x.color}"></i>${x.l} <b style="color:var(--fg);margin-left:4px">${x.v}</b></span>`).join('')}</div></div></section>
+ </div>
+ <section class="panel"><div class="panel-head"><h2>Kritik ve Yüksek Öncelikli Açık Task’lar</h2><a class="link" href="#gorevler">Tümünü Gör</a></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Task ID</th><th>Başlık</th><th>Atanan</th><th>Öncelik</th><th>Durum</th><th>Termin</th><th>Aksiyon</th></tr></thead><tbody>
+  ${hot.map(t=>`<tr><td class="id">${t.id}</td><td><span class="t-title">${esc(t.title)}</span></td><td><span style="display:inline-flex;gap:8px;align-items:center;white-space:nowrap">${asgAv(t)}${esc(asgName(t))}</span></td><td><span class="pri ${t.pri}">${PRI[t.pri]}</span></td><td>${stPill(t.status)}</td><td>${dueChip(t)}</td><td><button class="link" data-open="${t.id}">Detay</button></td></tr>`).join('')||'<tr><td colspan="7" class="hint">Kritik veya yüksek öncelikli açık task yok.</td></tr>'}
+  </tbody></table></div></section>
+ <div class="grid2">
+  <div class="stack">
+   ${appr.length?`<section class="panel"><div class="panel-head"><h2>Kararınızı Bekleyenler</h2><a class="link" href="#onaylar">Onay kutusunu aç</a></div>${appr.slice(0,2).map(apprCard).join('')}</section>`:''}
+   <section class="panel"><div class="panel-head"><h2>Üzerimdeki İşler</h2><a class="link" href="#gorevler">Panoya git</a></div>
+    <div class="rows">${mine.map(t=>taskRow(t)).join('')||'<div class="empty">Üzerinizde açık task yok.</div>'}</div></section>
+   ${teamTable.length?`<section class="panel"><h2>Ekibim Bir Bakışta</h2><div class="tbl-wrap"><table><thead><tr><th>Kişi</th><th>Ekip</th><th class="num">Açık</th><th class="num">Kabul bekleyen</th><th class="num">Bloklu</th><th class="num">Geciken</th></tr></thead><tbody>
+    ${teamTable.map(m=>{const ts=tasks.filter(t=>asgUser(t)===m);const o=ts.filter(t=>['Yapılacak','Devam Ediyor','Bloklu'].includes(t.status));const lt=o.filter(t=>t.due!=null&&t.due<0).length;return`<tr><td><span style="display:inline-flex;gap:8px;align-items:center;white-space:nowrap">${av(m)}${esc(nm(m))}</span></td><td><span class="tag team">${P(m).team}</span></td><td class="num">${o.length}</td><td class="num">${ts.filter(t=>t.status==='Kabul Bekliyor').length}</td><td class="num">${o.filter(t=>t.status==='Bloklu').length}</td><td class="num" style="${lt?'color:#F87171;font-weight:700':''}">${lt}</td></tr>`}).join('')}
+   </tbody></table></div></section>`:''}
+  </div>
+  <div class="stack">
+   <section class="panel"><div class="panel-head"><h2>Yaklaşan Etkinlikler</h2><a class="link" href="#etkinlikler">Takvim</a></div><div>${evs.map(evRow).join('')||'<div class="empty">Yaklaşan etkinlik yok.</div>'}</div></section>
+   <section class="panel"><h2>Duyurular</h2><div>${myAnns.map(annRow).join('')}</div></section>
+   ${myCerts.length?`<section class="panel"><h2>Süresi Yaklaşan Sertifikalar</h2><div>${myCerts.map(certRow).join('')}</div></section>`:''}
+  </div>
+ </div>`;
+}
+
+/* ---------- Onay kutusu ---------- */
+function chainHtml(t){
+ const steps=[{who:t.req,state:'ok',label:'Talep eden'}].concat(t.chain.length?t.chain:[]);
+ return `<div class="chain">${steps.map((s,i)=>`${i?`<span class="step-line ${s.state==='ok'?'ok':''}"></span>`:''}<div class="step ${s.state}"><span class="ic">${s.state==='ok'?ICON.check:s.state==='no'?ICON.x:s.state==='wait'?ICON.clock:ICON.dot}</span><span><b>${esc(nm(s.who))}${s.who===me()?' (siz)':''}</b><small>${esc(s.label)}${s.at?' · '+esc(s.at):''}</small></span></div>`).join('')}</div>`;
+}
+function apprCard(it){
+ if(it.type==='task'||it.type==='pool'){const t=it.t;const pool=it.type==='pool';
+  const from=P(t.req).team?TEAMS[P(t.req).team]?.name:(P(t.req).unit?UNITS[P(t.req).unit].name:'Direktörlük');
+  return `<article class="appr"><div class="appr-top"><span class="id">${t.id}</span><span class="pri ${t.pri}">${PRI[t.pri]}</span>${pool?`<span class="tag team">${t.asg.id} havuzu</span>`:''}${dueChip(t)}</div>
+  <button class="appr-title" data-open="${t.id}">${esc(t.title)}</button>
+  <p class="appr-why">${pool?`${esc(nm(t.req))} bu işi ekibe atadı. Kabul edip bir çalışana delege etmeniz bekleniyor.`:`${esc(nm(t.req))} (${esc(from)}) talep etti. ${esc(it.s.label)}.`}</p>
+  ${chainHtml(t)}
+  <div class="appr-actions">${pool?`<button class="btn primary sm" data-delegate="${t.id}">Delege et</button>`:`<button class="btn good sm" data-accept="${t.id}">${ICON.check} Kabul et</button>`}<button class="btn bad sm" data-refuse="${t.id}">${ICON.x} Reddet</button><button class="btn ghost sm" data-open="${t.id}">Ayrıntı</button></div></article>`}
+ if(it.type==='event'){const e=it.e;return `<article class="appr"><div class="appr-top"><span class="ev-type ${e.kind}">${e.kind==='spk'?'Dış etkinlik · konuşmacı':'Dış etkinlik · katılım'}</span><span class="due">${evDateTxt(e)}</span></div>
+  <div class="appr-title" style="cursor:default">${esc(e.title)}</div><p class="appr-why">${esc(nm(e.person))} katılım onayı istiyor · ${esc(e.where)} · ${esc(e.time)}. Dış etkinlikler iş gücü planını etkilediği için sorumlu yönetici onayı gerekir.</p>
+  <div class="appr-actions"><button class="btn good sm" data-evok="${e.id}">${ICON.check} Onayla</button><button class="btn bad sm" data-evno="${e.id}">${ICON.x} Reddet</button></div></article>`}
+ if(it.type==='rsvp'){const e=it.e;return `<article class="appr"><div class="appr-top"><span class="ev-type int">İç etkinlik daveti</span><span class="due">${evDateTxt(e)} · ${esc(e.time)}</span></div>
+  <div class="appr-title" style="cursor:default">${esc(e.title)}</div><p class="appr-why">${esc(nm(e.org))} davet etti · ${esc(e.where)}</p>
+  <div class="appr-actions"><button class="btn good sm" data-rsvp="${e.id}:yes">Katılıyorum</button><button class="btn sm" data-rsvp="${e.id}:no">Katılmıyorum</button></div></article>`}
+ if(it.type==='esc'){const t=it.t;return `<article class="appr"><div class="appr-top"><span class="id">${t.id}</span><span class="pri ${t.pri}">${PRI[t.pri]}</span>${stPill(t.status)}${dueChip(t)}</div>
+  <button class="appr-title" data-open="${t.id}">${esc(t.title)}</button><p class="appr-why">Termin geçti. Atanan: ${esc(asgName(t))}${t.status==='Bloklu'?` · ${esc(t.blockedFor)} bloklu: ${esc(t.blockReason)}`:''}</p>
+  <div class="appr-actions"><button class="btn sm" data-open="${t.id}">Görüntüle ve aksiyon al</button></div></article>`}
+}
+function renderApprovals(){
+ const items=approvalsFor();
+ const groups=[['task','Task kabulü','Size veya ekibinizdeki birine gelen, kabul ya da ret bekleyen task’lar'],['pool','Delege bekleyen ekip task’ları','Ekibinize atanmış, bir çalışana atanmayı bekleyen işler'],['event','Etkinlik onayları','Dış eğitim, konferans ve konuşmacılık talepleri'],['rsvp','Etkinlik davetleri','İç etkinliklere katılım yanıtınız'],['esc','Eskalasyonlar','Termini geçmiş ve sorumluluğunuzdaki task’lar']];
+ $('#view').innerHTML=`<div class="head-row"><div><h1>Onay kutusu</h1><p class="sub">${role==='emp'?'Size gelen kabul bekleyen task’lar ve etkinlik davetleri.':'Ekip onaylarınız, delege bekleyen işler, etkinlik onayları ve eskalasyonlar.'} Ret için gerekçe zorunludur ve denetim izine yazılır.</p></div></div>
+ ${items.length?groups.map(([k,title,desc])=>{const g=items.filter(i=>i.type===k);return g.length?`<section class="group"><div class="group-head"><h2>${title}</h2><span class="badge">${g.length}</span></div><p class="hint">${desc}</p>${g.map(apprCard).join('')}</section>`:''}).join(''):'<div class="empty">Bekleyen kararınız yok. Yeni bir atama geldiğinde burada ve bildirimlerde görünecek.</div>'}`;
+}
+
+/* ---------- Task panosu ---------- */
+const COLS=[['Bekleyen',['Kabul Bekliyor','Ekip Havuzu'],'var(--wait)'],['Yapılacak',['Yapılacak'],'var(--low)'],['Devam Ediyor',['Devam Ediyor'],'var(--accent)'],['Bloklu',['Bloklu'],'var(--orange)'],['Tamamlandı',['Tamamlandı'],'var(--ok)']];
+function scopeFilter(t){const id=me();
+ if(boardScope==='mine')return asgUser(t)===id||pendingStepFor(t,id)&&asgUser(t)===id;
+ if(boardScope==='opened')return t.req===id;
+ if(boardScope==='team'){const tm=P(id).team?[P(id).team]:managedTeams(id);return(t.asg.t==='team'&&tm.includes(t.asg.id))||tm.includes(t.team0)||tm.includes(teamOfPerson(asgUser(t)||''))}
+ return true;}
+function boardFilter(t){return matchesQ(t)&&scopeFilter(t)&&(!priF.size||priF.has(t.pri))&&(!teamF||(t.asg.t==='team'?t.asg.id:teamOfPerson(t.asg.id)||t.team0)===teamF)&&(!kindF||t.kind===kindF)}
+function renderBoard(){
+ const vis=visibleTasks(), list=vis.filter(boardFilter);
+ const rej=vis.filter(t=>t.status==='Reddedildi'&&matchesQ(t));
+ const teamsSeen=[...new Set(vis.map(t=>t.asg.t==='team'?t.asg.id:teamOfPerson(t.asg.id)||t.team0).filter(Boolean))];
+ const scopes=[['all','Görebildiklerim'],['mine','Bana atanan'],['opened','Açtıklarım'],['team',role==='emp'?'Ekibime atanan':'Ekiplerim']];
+ $('#view').innerHTML=`<div class="head-row"><div><h1>Task panosu</h1><p class="sub">${role==='emp'?'Açtığınız, size atanan ve ekibinize atanan task’lar.':role==='dir'?'Tüm task’lar.':'Ekiplerinizdeki çalışanların ilişkili olduğu tüm task’lar.'} Kartı sürükleyerek durum değiştirin.</p></div></div>
+ <div class="tabs" role="tablist">${scopes.map(([k,l])=>`<button role="tab" data-scope="${k}" aria-selected="${boardScope===k}">${l}<span class="badge">${vis.filter(t=>{const b=boardScope;boardScope=k;const r=scopeFilter(t)&&t.status!=='Reddedildi'&&t.status!=='İptal';boardScope=b;return r}).length}</span></button>`).join('')}</div>
+ <div class="toolbar">${PRI_ORDER.map(p=>`<button class="chip" data-pri="${p}" aria-pressed="${priF.has(p)}">${PRI[p]}</button>`).join('')}
+  <select class="chip" id="teamF" aria-label="Ekip"><option value="">Tüm ekipler</option>${teamsSeen.map(t=>`<option ${t===teamF?'selected':''}>${t}</option>`).join('')}</select>
+  <select class="chip" id="kindF" aria-label="Tür"><option value="">Tüm türler</option><option value="once" ${kindF==='once'?'selected':''}>Tek seferlik</option><option value="backlog" ${kindF==='backlog'?'selected':''}>Backlog</option><option value="recur" ${kindF==='recur'?'selected':''}>Tekrarlayan</option></select>
+ </div>
+ ${rej.length?`<section class="rejected"><div class="panel-head"><h2 style="color:var(--crit)">Reddedilen task’lar (${rej.length})</h2><span class="hint">Talep eden yeniden atayabilir veya iptal edebilir. Kayıtlar silinmez.</span></div>
+  ${rej.map(t=>`<div class="rej-item"><span class="id">${t.id}</span><div class="grow"><b style="font-weight:500">${esc(t.title)}</b><div class="hint">${esc(nm(t.rejectBy))} reddetti · <b>${esc(t.rejectReason)}</b>: ${esc(t.rejectNote)}</div></div>
+  ${t.req===me()||role==='dir'?`<button class="btn sm" data-reassign="${t.id}">Yeniden ata</button><button class="btn ghost sm" data-cancel="${t.id}">İptal et</button>`:''}<button class="btn ghost sm" data-open="${t.id}">Ayrıntı</button></div>`).join('')}</section>`:''}
+ <div class="board-wrap"><div class="board">${COLS.map(([name,sts,c])=>{const col=list.filter(t=>sts.includes(t.status)).sort((a,b)=>PRI_ORDER.indexOf(a.pri)-PRI_ORDER.indexOf(b.pri)||(a.due??99)-(b.due??99));
+  return `<section class="col" data-col="${name}"><div class="col-head"><b><i style="background:${c}"></i>${name}</b><span>${col.length}</span></div><div class="col-body">${col.map(card).join('')||`<div class="empty">${name==='Bekleyen'?'Kabul veya delege bekleyen task yok':'Bu sütunda task yok'}</div>`}</div></section>`}).join('')}</div></div>`;
+ bindDrag();
+}
+function card(t){
+ const done=t.subs.filter(s=>s[1]).length, pend=t.chain.find(s=>s.state==='wait');
+ return `<button class="card ${t.pri}" draggable="true" data-open="${t.id}">
+  <div class="card-line"><span class="id">${t.id}</span><span class="pri ${t.pri}">${PRI[t.pri]}</span>${kindChip(t)}</div>
+  <div class="card-title">${esc(t.title)}</div>
+  ${t.status==='Bloklu'?`<div class="blockr">Bloklu: ${esc(t.blockReason)}</div>`:''}
+  ${pend?`<div class="hint" style="color:var(--wait)">${t.status==='Ekip Havuzu'?'Delege bekliyor':'Kabul bekliyor'}: ${esc(nm(pend.who))}</div>`:''}
+  <div class="card-line">${(t.asg.t==='team'||t.team0)?`<span class="tag team">${t.asg.t==='team'?t.asg.id:t.team0}</span>`:''}${t.tags.slice(0,2).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>
+  ${t.subs.length?`<div class="progress" title="${done}/${t.subs.length} alt task"><i style="width:${done/t.subs.length*100}%"></i></div>`:''}
+  <div class="card-foot">${dueChip(t)}<span style="display:flex;gap:4px">${t.req!==asgUser(t)?av(t.req):''}${asgAv(t)}</span></div></button>`;
+}
+function bindDrag(){
+ document.querySelectorAll('.card').forEach(c=>{c.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',c.dataset.open);c.classList.add('dragging')});c.addEventListener('dragend',()=>c.classList.remove('dragging'))});
+ document.querySelectorAll('.col').forEach(col=>{
+  col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('over')});
+  col.addEventListener('dragleave',()=>col.classList.remove('over'));
+  col.addEventListener('drop',e=>{e.preventDefault();col.classList.remove('over');const t=tasks.find(x=>x.id===e.dataTransfer.getData('text/plain'));if(!t)return;
+   const target=COLS.find(c=>c[0]===col.dataset.col)[1][0];requestStatus(t,target)});
+ });
+}
+function requestStatus(t,st){
+ if(t.status===st)return;
+ if(['Kabul Bekliyor','Ekip Havuzu'].includes(t.status))return toast('Bu task henüz kabul edilmedi. Önce kabul zinciri tamamlanmalı.');
+ if(['Kabul Bekliyor','Ekip Havuzu'].includes(st))return toast('Task bekleyen durumuna geri alınamaz. Gerekirse iade edin.');
+ if(!canChangeStatus(t))return toast('Durumu yalnızca atanan kişi, sorumlu yöneticisi veya direktör değiştirebilir.');
+ if(st==='Bloklu')return openBlock(t);
+ t.status=st; if(st!=='Bloklu'){delete t.blockReason}
+ log(t,`${nm(me())}: durum “${st}”`); if(st==='Tamamlandı'&&t.req!==me())notify(t.req,`${t.id} tamamlandı.`,t.id);
+ toast(`${t.id} → ${st}`); render(); if(drawerTask===t.id)openTask(t.id);
+}
+
+/* ---------- Task ayrıntısı ---------- */
+function openTask(id){
+ const t=tasks.find(x=>x.id===id); if(!t)return; drawerTask=id;
+ if(!canSee(t)){toast('Bu task’ı görme yetkiniz yok.');return}
+ const step=pendingStepFor(t), canSt=canChangeStatus(t)&&!['Kabul Bekliyor','Ekip Havuzu','Reddedildi','İptal'].includes(t.status);
+ const delegatedToMe=t.team0&&asgUser(t)===me()&&['Yapılacak','Devam Ediyor'].includes(t.status);
+ const done=t.subs.filter(s=>s[1]).length;
+ $('#drawer').innerHTML=`
+ <div class="drawer-head"><span class="id">${t.id}</span><span class="pri ${t.pri}">${PRI[t.pri]}</span>${stPill(t.status)}${kindChip(t)}<button class="btn icon-btn ghost" data-close style="margin-left:auto" aria-label="Kapat">${ICON.close}</button></div>
+ <div class="drawer-body">
+  <div class="sec"><h3>${esc(t.title)}</h3><p class="muted" style="margin:0">${esc(t.desc)}</p></div>
+  ${t.status==='Bloklu'?`<div class="banner block">${ICON.block}<div><b>Bloklu · ${esc(t.blockedFor||'az önce')}</b><br>${esc(t.blockReason)}</div></div>`:''}
+  ${t.status==='Reddedildi'?`<div class="banner rej">${ICON.block}<div><b>${esc(nm(t.rejectBy))} reddetti · ${esc(t.rejectReason)}</b><br>${esc(t.rejectNote)}</div></div>`:''}
+  ${step?`<div class="banner wait">${ICON.clock}<div><b>Kararınız bekleniyor.</b> ${t.status==='Ekip Havuzu'?'Bu task ekibinize atandı, bir çalışana delege edin.':esc(step.label)+'.'}</div></div>`:''}
+  ${(step||canSt||delegatedToMe||(t.req===me()&&!['Tamamlandı','İptal'].includes(t.status)))?`<div class="appr-actions">
+   ${step?(t.status==='Ekip Havuzu'?`<button class="btn primary sm" data-delegate="${t.id}">Delege et</button>`:`<button class="btn good sm" data-accept="${t.id}">${ICON.check} Kabul et</button>`)+`<button class="btn bad sm" data-refuse="${t.id}">${ICON.x} Reddet</button>`:''}
+   ${canSt?`<label class="lock" for="dStatus">Durum</label><select class="chip" id="dStatus">${['Yapılacak','Devam Ediyor','Bloklu','Tamamlandı'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select>`:''}
+   ${delegatedToMe?`<button class="btn sm" data-return="${t.id}">Ekip havuzuna iade et</button>`:''}
+   ${t.status==='Reddedildi'&&(t.req===me()||role==='dir')?`<button class="btn sm" data-reassign="${t.id}">Yeniden ata</button>`:''}
+   ${t.req===me()&&!['Tamamlandı','İptal'].includes(t.status)?`<button class="btn ghost sm" data-cancel="${t.id}">İptal et</button>`:''}
+  </div>`:`<p class="lock">${ICON.lock} Bu task’ta görüntüleme yetkiniz var. Durumu atanan kişi ve yöneticisi değiştirebilir.</p>`}
+  <div class="sec"><h2>Kabul akışı</h2>${t.chain.length?chainHtml(t):'<p class="hint">Onay gerekmedi.</p>'}</div>
+  <dl class="meta">
+   <dt>Talep eden</dt><dd>${av(t.req)} ${esc(nm(t.req))}</dd>
+   <dt>Atanan</dt><dd>${asgAv(t)} ${esc(asgName(t))}${t.team0?` <span class="hint">(${t.team0} havuzundan delege)</span>`:''}</dd>
+   <dt>Ekip</dt><dd><span class="tag team">${t.asg.t==='team'?t.asg.id:teamOfPerson(t.asg.id)||t.team0||'Direktörlük'}</span></dd>
+   <dt>Termin</dt><dd>${dueChip(t)}</dd>
+   ${t.kind==='recur'?`<dt>Tekrar</dt><dd>${esc(t.recur)}</dd>`:''}
+   <dt>Etiketler</dt><dd>${t.tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</dd>
+   <dt>Harici referans</dt><dd class="mono">${esc(t.ref||'—')}</dd>
+  </dl>
+  <div class="sec"><div class="panel-head"><h2>Alt task’lar</h2><span class="hint mono">${done}/${t.subs.length}</span></div>
+   ${t.subs.length?`<ul class="checks">${t.subs.map((s,i)=>`<li><label><input type="checkbox" id="sub-${t.id}-${i}" data-sub="${i}" ${s[1]?'checked':''} ${canChangeStatus(t)?'':'disabled'}><span>${esc(s[0])}</span></label></li>`).join('')}</ul>`:'<p class="hint">Alt task yok. Ortak işlerde her kişiye bir alt task açılır.</p>'}</div>
+  <div class="sec"><h2>Dosyalar</h2><div class="files">${t.files.map(f=>`<div class="file">${ICON.file}<span class="grow">${esc(f[0])}</span><span class="hint mono">${f[1]}</span></div>`).join('')}
+   <label class="file" style="border-style:dashed;cursor:pointer;color:var(--muted)" for="fileIn">${ICON.file}<span class="grow">Dosya ekle</span><input type="file" id="fileIn" hidden accept=".pdf,.png,.jpg,.txt,.csv,.md"></label></div>
+   <p class="hint">En fazla 10 MB · PDF, PNG, JPG, TXT, CSV, MD. Parola, anahtar veya kişisel veri içeren dosyaları yüklemeyin.</p></div>
+  <div class="sec"><h2>Yorumlar</h2><div class="comments">${t.comments.map(c=>`<div class="cmt">${av(c[0])}<div><b>${esc(nm(c[0]))}</b><span class="hint mono">${esc(c[1])}</span><div>${esc(c[2])}</div></div></div>`).join('')||'<p class="hint">Henüz yorum yok.</p>'}</div>
+   <form class="appr-actions" id="cForm"><input class="inline-in" id="cIn" placeholder="Yorum yazın" autocomplete="off" style="flex:1"><button class="btn sm" type="submit">Gönder</button></form></div>
+  <div class="sec"><h2>Denetim izi</h2><ul class="timeline">${t.audit.map(a=>`<li><time>${esc(a[0])}</time>${esc(a[1])}</li>`).join('')||'<li>Kayıt yok</li>'}</ul><p class="hint">Kayıtlar yalnızca eklenir, silinmez.</p></div>
+ </div>`;
+ $('#drawer').hidden=false;$('#scrim').hidden=false;
+ const ds=$('#dStatus'); if(ds)ds.onchange=e=>requestStatus(t,e.target.value);
+ document.querySelectorAll('[data-sub]').forEach(c=>c.onchange=()=>{t.subs[c.dataset.sub][1]=c.checked;log(t,`${nm(me())}: alt task “${t.subs[c.dataset.sub][0]}” ${c.checked?'tamamlandı':'geri açıldı'}`);render();openTask(t.id)});
+ $('#cForm').onsubmit=e=>{e.preventDefault();const v=$('#cIn').value.trim();if(!v)return;t.comments.push([me(),now(),v]);openTask(t.id)};
+ $('#fileIn').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>10*1024*1024)return toast('Dosya 10 MB sınırını aşıyor.');t.files.push([f.name,Math.max(1,Math.round(f.size/1024))+' KB']);log(t,`${nm(me())}: dosya eklendi (${f.name})`);openTask(t.id)};
+}
+function closeDrawer(){$('#drawer').hidden=true;$('#scrim').hidden=true;drawerTask=null}
+
+/* ---------- modallar: kabul, ret, delege, blok, yeni task ---------- */
+function openModal(html,onMount){$('#modal').innerHTML=html;$('#modalWrap').hidden=false;$('#mscrim').hidden=false;onMount&&onMount();const f=$('#modal').querySelector('input,select,textarea');f&&f.focus()}
+function closeModal(){$('#modalWrap').hidden=true;$('#mscrim').hidden=true}
+const modalHead=(title,sub)=>`<div class="panel-head"><div><h3 style="font-size:19px">${title}</h3>${sub?`<p class="sub" style="font-size:13px">${sub}</p>`:''}</div><button class="btn icon-btn ghost" data-mclose aria-label="Kapat">${ICON.close}</button></div>`;
+function refresh(t){render();if(drawerTask&&t&&drawerTask===t.id)openTask(t.id)}
+
+function accept(t){
+ const s=pendingStepFor(t); if(!s)return;
+ s.state='ok'; s.at=now(); log(t,`${nm(me())} kabul etti`);
+ const next=t.chain.find(x=>x.state==='todo');
+ if(next){next.state='wait';notify(next.who,`${t.id}: ${nm(me())} kabul etti, sizin kabulünüz bekleniyor.`,t.id);toast(`Kabul edildi. Sıradaki onay: ${nm(next.who)}`)}
+ else{t.status='Yapılacak';notify(t.req,`${t.id} kabul edildi.`,t.id);toast(`${t.id} kabul edildi ve “Yapılacak” oldu`)}
+ refresh(t);
+}
+function openRefuse(t,mode='refuse'){
+ const ret=mode==='return';
+ openModal(`${modalHead(ret?'Ekip havuzuna iade et':'Task’ı reddet',`${t.id} · ${esc(t.title)}`)}
+ <form class="form" id="refForm">
+  <div class="field"><span class="lab">Gerekçe</span><div class="reasons">${REASONS.map((r,i)=>`<button type="button" class="chip" data-reason="${r}" aria-pressed="${i===0}">${r}</button>`).join('')}</div></div>
+  <div class="field"><label for="refNote">Açıklama (zorunlu)</label><textarea id="refNote" required placeholder="Talep eden kişi bu açıklamayı görecek"></textarea></div>
+  <div class="banner info">${ICON.info}<div>${ret?`Task ${t.team0} havuzuna döner ve ${esc(nm(teamHeadOf(t.team0)))} yeniden delege eder.`:t.team0||t.status==='Ekip Havuzu'&&false?'':`Task “Reddedildi” olur, ${esc(nm(t.req))} bilgilendirilir. Yeniden atayabilir veya iptal edebilir. Karar denetim izine yazılır.`}</div></div>
+  <div class="appr-actions" style="justify-content:flex-end"><button type="button" class="btn" data-mclose>Vazgeç</button><button class="btn ${ret?'primary':'bad'}" type="submit">${ret?'İade et':'Reddet'}</button></div>
+ </form>`,()=>{
+  let reason=REASONS[0];
+  $('#modal').querySelectorAll('[data-reason]').forEach(b=>b.onclick=()=>{reason=b.dataset.reason;$('#modal').querySelectorAll('[data-reason]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+  $('#refForm').onsubmit=e=>{e.preventDefault();const note=$('#refNote').value.trim();if(!note)return;
+   if(ret){const h=teamHeadOf(t.team0);t.asg={t:'team',id:t.team0};delete t.team0;t.status='Ekip Havuzu';t.chain.push(S(h,'wait','İade edildi, yeniden delege edilecek'));log(t,`${nm(me())} ekip havuzuna iade etti (${reason}: ${note})`);notify(h,`${t.id} ekip havuzuna iade edildi.`,t.id);toast('Task ekip havuzuna iade edildi')}
+   else if(t.status==='Ekip Havuzu'){const s=pendingStepFor(t);s.state='no';s.at=now();s.note=note;t.status='Reddedildi';t.rejectReason=reason;t.rejectNote=note;t.rejectBy=me();log(t,`${nm(me())} reddetti (${reason})`);notify(t.req,`${t.id} reddedildi: ${reason}.`,t.id);toast(`${t.id} reddedildi`)}
+   else{const s=pendingStepFor(t);s.state='no';s.at=now();s.note=note;t.status='Reddedildi';t.rejectReason=reason;t.rejectNote=note;t.rejectBy=me();log(t,`${nm(me())} reddetti (${reason}: ${note})`);notify(t.req,`${t.id} reddedildi: ${reason}.`,t.id);toast(`${t.id} reddedildi, ${nm(t.req)} bilgilendirildi`)}
+   closeModal();refresh(t)};
+ });
+}
+function openDelegate(t){
+ const team=t.asg.id, mem=membersOf(team).filter(m=>m!==me());
+ openModal(`${modalHead('Ekip üyesine delege et',`${t.id} · ${team} havuzu`)}
+ <form class="form" id="delForm"><div class="field"><label for="delWho">Kime</label><select id="delWho">${mem.map(m=>{const o=tasks.filter(x=>asgUser(x)===m&&['Yapılacak','Devam Ediyor','Bloklu'].includes(x.status)).length;return`<option value="${m}">${esc(nm(m))} · ${o} açık task</option>`}).join('')}</select></div>
+ <div class="banner info">${ICON.info}<div>Yöneticiden kendi ekibine atama olduğu için onay gerekmez. Çalışan uygun değilse task’ı havuza iade edebilir.</div></div>
+ <div class="appr-actions" style="justify-content:flex-end"><button type="button" class="btn" data-mclose>Vazgeç</button><button class="btn primary" type="submit">Delege et</button></div></form>`,()=>{
+  $('#delForm').onsubmit=e=>{e.preventDefault();const w=$('#delWho').value;const s=pendingStepFor(t);s.state='ok';s.at=now();
+   t.chain.push(S(w,'ok','Delege edildi',now()));t.team0=team;t.asg={t:'user',id:w};t.status='Yapılacak';log(t,`${nm(me())}, ${nm(w)} kişisine delege etti`);notify(w,`${t.id} size delege edildi.`,t.id);toast(`${t.id}, ${nm(w)} kişisine delege edildi`);closeModal();refresh(t)};
+ });
+}
+function openBlock(t){
+ openModal(`${modalHead('Task’ı blokla',`${t.id} · ${esc(t.title)}`)}
+ <form class="form" id="blkForm"><div class="field"><label for="blkWhy">Neden bloklu? (zorunlu)</label><textarea id="blkWhy" required placeholder="ör. Bakım penceresi onayı bekleniyor (CR-4471)"></textarea></div>
+ <p class="hint">Blok süresi bu andan itibaren ölçülür ve raporlarda “bekleme süresi” olarak görünür.</p>
+ <div class="appr-actions" style="justify-content:flex-end"><button type="button" class="btn" data-mclose>Vazgeç</button><button class="btn primary" type="submit">Blokla</button></div></form>`,()=>{
+  $('#blkForm').onsubmit=e=>{e.preventDefault();const w=$('#blkWhy').value.trim();if(!w)return;t.status='Bloklu';t.blockReason=w;t.blockedFor='az önce';log(t,`${nm(me())}: durum “Bloklu” (${w})`);notify(respMgr(asgUser(t)),`${t.id} bloklandı: ${w}`,t.id);toast(`${t.id} bloklandı`);closeModal();refresh(t)};
+ });
+}
+function targetOptions(sel){
+ const people=Object.keys(PEOPLE).filter(k=>k!=='HA'||role==='dir');
+ return `<optgroup label="Kişiler">${people.map(k=>`<option value="user:${k}" ${sel==='user:'+k?'selected':''}>${k===me()?'Kendim · ':''}${esc(nm(k))} · ${P(k).team||ROLE_LABEL[P(k).role]}</option>`).join('')}</optgroup><optgroup label="Ekipler">${Object.keys(TEAMS).map(k=>`<option value="team:${k}" ${sel==='team:'+k?'selected':''}>${k} · ${esc(TEAMS[k].name)}</option>`).join('')}</optgroup>`;
+}
+function previewHtml(target){
+ const f=flowFor(me(),target);
+ const steps=[{who:me(),state:'ok',label:'Talep eden (siz)'}].concat(f.steps.map(s=>({...s,state:'todo'})));
+ return `<p><b style="color:var(--fg)">Bu atama için akış:</b> ${esc(f.text)}</p><div class="chain">${steps.map((s,i)=>`${i?'<span class="step-line"></span>':''}<div class="step ${s.state}"><span class="ic">${s.state==='ok'?ICON.check:ICON.dot}</span><span><b>${esc(nm(s.who))}</b><small>${esc(s.label)}</small></span></div>`).join('')}${!f.steps.length?`<span class="step-line ok"></span><div class="step ok"><span class="ic">${ICON.check}</span><span><b>${esc(target.t==='user'?nm(target.id):target.id)}</b><small>${esc(f.auto)}</small></span></div>`:''}</div>`;
+}
+function parseTarget(v){const[t,id]=v.split(':');return{t,id}}
+function applyFlow(t,target){
+ const f=flowFor(me(),target); t.asg=target; delete t.team0;
+ t.chain=f.steps.map((s,i)=>S(s.who,i===0?'wait':'todo',s.label));
+ if(!f.steps.length&&target.t==='user')t.chain=[S(target.id,'ok',f.auto,now())];
+ t.status=f.status;
+ const first=t.chain.find(s=>s.state==='wait'); if(first)notify(first.who,`${nm(me())} size ${t.id} gönderdi. Kararınız bekleniyor.`,t.id); else if(target.t==='user'&&target.id!==me())notify(target.id,`${nm(me())} size ${t.id} atadı.`,t.id);
+ return f;
+}
+function openNew(prefill){
+ const re=prefill?.reassign;
+ const def=re?'':(role==='emp'?'user:CY':role==='th'?'user:EK':role==='uh'?'team:TEAM-WAF':'team:TEAM-SOC');
+ openModal(`${modalHead(re?'Yeniden ata':'Yeni task',re?`${re.id} · ${esc(re.title)}`:'Atadığınız kişiye göre kabul akışı otomatik belirlenir')}
+ <form class="form" id="newForm">
+  ${re?'':`<div class="field"><label for="nTitle">Başlık</label><input id="nTitle" required placeholder="ör. DMZ’de açık RDP portunun kapatılması"></div>
+  <div class="field"><label for="nDesc">Açıklama</label><textarea id="nDesc" placeholder="Ne yapılmalı, neden önemli, kabul kriteri"></textarea></div>`}
+  <div class="field"><label for="nTarget">Atanacak kişi veya ekip</label><select id="nTarget">${targetOptions(def)}</select></div>
+  <div class="flow-preview" id="flowPrev"></div>
+  ${re?'':`<div class="row2"><div class="field"><label for="nPri">Öncelik</label><select id="nPri">${PRI_ORDER.map(p=>`<option value="${p}" ${p==='med'?'selected':''}>${PRI[p]}</option>`).join('')}</select></div>
+  <div class="field"><label for="nDue">Termin</label><input type="date" id="nDue" value="2026-11-21"></div></div>
+  <div class="row2"><div class="field"><label for="nKind">Tür</label><select id="nKind"><option value="once">Tek seferlik</option><option value="backlog">Backlog (terminsiz)</option><option value="recur">Tekrarlayan</option></select></div>
+  <div class="field"><label for="nRecur">Tekrar sıklığı</label><select id="nRecur" disabled><option>Her gün 09:00</option><option>Her Pazartesi 09:00</option><option>Her ayın 1’i</option></select></div></div>
+  <div class="row2"><div class="field"><label for="nTags">Etiketler</label><input id="nTags" placeholder="virgülle ayırın: olay, EDR"></div>
+  <div class="field"><label for="nRef">Harici referans</label><input id="nRef" placeholder="SIEM / ITSM kayıt no"></div></div>`}
+  <div class="appr-actions" style="justify-content:flex-end"><button type="button" class="btn" data-mclose>Vazgeç</button><button class="btn primary" type="submit">${re?'Yeniden gönder':'Task oluştur'}</button></div>
+ </form>`,()=>{
+  const upd=()=>{$('#flowPrev').innerHTML=previewHtml(parseTarget($('#nTarget').value))};upd();
+  $('#nTarget').onchange=upd;
+  const k=$('#nKind'); if(k)k.onchange=()=>{$('#nRecur').disabled=k.value!=='recur';$('#nDue').disabled=k.value==='backlog'};
+  $('#newForm').onsubmit=e=>{e.preventDefault();const target=parseTarget($('#nTarget').value);
+   if(re){re.rejectReason=null;re.audit.push([now(),`${nm(me())} yeniden atadı: ${target.t==='team'?target.id:nm(target.id)}`]);const f=applyFlow(re,target);toast(`${re.id} yeniden gönderildi · ${f.status}`);closeModal();refresh(re);return}
+   const id='GT-'+(nextId++), kind=$('#nKind').value, dv=$('#nDue').value;
+   const due=kind==='backlog'||!dv?null:Math.round((new Date(dv+'T00:00')-TODAY)/864e5);
+   const t={id,title:$('#nTitle').value.trim(),desc:$('#nDesc').value.trim()||'Açıklama girilmedi.',pri:$('#nPri').value,req:me(),due,kind,recur:kind==='recur'?$('#nRecur').value:null,
+    tags:$('#nTags').value.split(',').map(s=>s.trim()).filter(Boolean),ref:$('#nRef').value.trim(),subs:[],files:[],comments:[],audit:[[now(),`${nm(me())} oluşturdu`]]};
+   const f=applyFlow(t,target); tasks.unshift(t); closeModal(); toast(`${id} oluşturuldu · ${f.status}`); render();
+  };
+ });
+}
+
+/* ---------- Etkinlikler ---------- */
+function evDate(e){return new Date(e.when[1]<10?2027:2026,e.when[1],e.when[0])}
+function evDateTxt(e){return e.when[0]+' '+MONTHS[e.when[1]]}
+function eventVisible(e,id=me()){const p=P(id);
+ if(e.kind==='int')return e.aud==='all'||e.aud===unitOf(id)||p.role==='dir'||p.role==='uh'&&p.unit===e.aud;
+ return e.person===id||e.approver===id||isManagerOf(id,e.person)}
+function annVisible(a,id=me()){const p=P(id);return a.aud==='all'||p.role==='dir'||a.aud===unitOf(id)||a.aud===p.team}
+function certVisible(c,id=me()){return c.who===id||isManagerOf(id,c.who)}
+const EV_LABEL={int:'İç etkinlik',ext:'Dış etkinlik · katılım',spk:'Dış etkinlik · konuşmacı'};
+function evRow(e){
+ const d=evDate(e), id=me();
+ let side='';
+ if(e.kind==='int'){const r=e.rsvp?.[id];side=r===undefined?'':r===null?`<span class="appr-actions"><button class="btn good sm" data-rsvp="${e.id}:yes">Katılıyorum</button><button class="btn sm" data-rsvp="${e.id}:no">Katılmıyorum</button></span>`:`<span class="st ${r==='yes'?'done':''}">${r==='yes'?'Katılıyorsunuz':'Katılmıyorsunuz'}</span>`}
+ else side=e.status==='wait'?(e.approver===id?`<span class="appr-actions"><button class="btn good sm" data-evok="${e.id}">Onayla</button><button class="btn bad sm" data-evno="${e.id}">Reddet</button></span>`:`<span class="st wait">Onay bekliyor · ${esc(nm(e.approver))}</span>`):e.status==='ok'?'<span class="st done">Onaylandı</span>':'<span class="st rej">Reddedildi</span>';
+ return `<div class="ev"><div class="cal"><small>${MONTHS[d.getMonth()]}</small><b>${d.getDate()}</b></div><div style="min-width:0"><div class="ev-type ${e.kind}">${EV_LABEL[e.kind]}</div><b style="font-weight:500">${esc(e.title)}</b><div class="hint">${esc(e.time)} · ${esc(e.where)}${e.person?` · ${esc(nm(e.person))}`:''}</div></div><div>${side}</div></div>`;
+}
+function certRow(c){const cls=c.exp==null?'':c.exp<0?'late':c.exp<=30?'soon':'';const txt=c.exp==null?'Süresiz':c.exp<0?`${-c.exp} gün önce doldu`:`${c.exp} gün kaldı`;
+ return `<div class="cert"><div><b style="font-weight:500">${esc(c.name)}</b><div class="hint">${esc(nm(c.who))}</div></div><span class="due ${cls}">${txt}</span></div>`}
+function annRow(a){const audTxt=a.aud==='all'?'Tüm direktörlük':UNITS[a.aud]?UNITS[a.aud].name:a.aud;return `<div class="ann"><b>${esc(a.title)}</b><span class="muted" style="font-size:13px">${esc(a.body)}</span><span class="hint">${esc(nm(a.by))} · ${a.date} · Hedef kitle: <span class="tag">${esc(audTxt)}</span></span></div>`}
+function renderEvents(){
+ const evs=events.filter(e=>eventVisible(e)).sort((a,b)=>evDate(a)-evDate(b));
+ const cs=certs.filter(c=>certVisible(c)).sort((a,b)=>(a.exp??9999)-(b.exp??9999));
+ $('#view').innerHTML=`<div class="head-row"><div><h1>Etkinlik & yetkinlik</h1><p class="sub">İç etkinliklerde katılım yanıtı verilir. Dış eğitim, konferans ve konuşmacılıkta sorumlu yönetici onayı gerekir.</p></div>
+  <div class="appr-actions"><button class="btn" id="newExt">Dış etkinlik bildir</button>${isMgrRole(me())?'<button class="btn" id="newAnn">Duyuru yayınla</button>':''}</div></div>
+ <div class="grid2"><section class="panel"><div class="panel-head"><h2>Etkinlikler</h2><div class="legend"><span><i style="background:var(--accent)"></i>İç</span><span><i style="background:var(--ok)"></i>Dış katılım</span><span><i style="background:var(--gold)"></i>Konuşmacı</span></div></div><div>${evs.map(evRow).join('')}</div></section>
+ <div class="stack"><section class="panel"><div class="panel-head"><h2>${role==='emp'?'Sertifikalarım':'Ekip yetkinlikleri'}</h2><button class="link" id="addCert">+ Ekle</button></div><div>${cs.map(certRow).join('')||'<div class="empty">Kayıtlı sertifika yok.</div>'}</div><p class="hint">Bitiş tarihinden 30 gün önce sahibine ve yöneticisine hatırlatma gider.</p></section>
+ <section class="panel"><h2>Duyurular</h2><div>${anns.filter(a=>annVisible(a)).map(annRow).join('')}</div></section></div></div>`;
+ $('#newExt').onclick=openExt; const na=$('#newAnn'); if(na)na.onclick=()=>toast('Duyuru formu: başlık, metin, hedef kitle (Ekip / Unit / Direktörlük).');
+ $('#addCert').onclick=()=>toast('Sertifika formu: ad, veren kurum, bitiş tarihi.');
+}
+function openExt(){
+ const appr=respMgr(me());
+ openModal(`${modalHead('Dış etkinlik bildir','Eğitim, konferans katılımı veya konuşmacılık')}
+ <form class="form" id="extForm"><div class="row2"><div class="field"><label for="xKind">Tür</label><select id="xKind"><option value="ext">Katılımcı</option><option value="spk">Konuşmacı</option></select></div><div class="field"><label for="xDate">Tarih</label><input type="date" id="xDate" value="2026-12-10"></div></div>
+ <div class="field"><label for="xTitle">Etkinlik / konu</label><input id="xTitle" required placeholder="ör. Siber Güvenlik Zirvesi: Fidye yazılımı müdahalesi"></div>
+ <div class="field"><label for="xOrg">Kurum ve yer</label><input id="xOrg" required placeholder="ör. ISACA İstanbul, Haliç Kongre Merkezi"></div>
+ ${appr?`<div class="banner info">${ICON.info}<div>Talep onay için <b>${esc(nm(appr))}</b> kişisine gidecek.</div></div>`:`<div class="banner info">${ICON.info}<div>Direktör olarak kaydınız onaysız eklenir.</div></div>`}
+ <div class="appr-actions" style="justify-content:flex-end"><button type="button" class="btn" data-mclose>Vazgeç</button><button class="btn primary" type="submit">${appr?'Onaya gönder':'Kaydet'}</button></div></form>`,()=>{
+  $('#extForm').onsubmit=e=>{e.preventDefault();const d=new Date($('#xDate').value+'T00:00');events.push({id:'E'+(events.length+1),kind:$('#xKind').value,title:$('#xTitle').value.trim(),when:[d.getDate(),d.getMonth()],time:'Tüm gün',where:$('#xOrg').value.trim(),person:me(),approver:appr,status:appr?'wait':'ok'});
+   if(appr)notify(appr,`${nm(me())} dış etkinlik için onay istedi.`);closeModal();toast(appr?`Onay için ${nm(appr)} kişisine gönderildi`:'Kaydedildi');render()};
+ });
+}
+
+/* ---------- Raporlar ---------- */
+function reportTeams(){const id=me(),p=P(id);let ts=p.role==='dir'?Object.keys(TEAMS):managedTeams(id);if(rUnit)ts=ts.filter(t=>TEAMS[t].unit===rUnit);if(rTeam)ts=ts.filter(t=>t===rTeam);return ts}
+const RF={'7':.25,'30':1,'90':2.9};
+function agg(ts){const f=RF[rRange];const s={opened:0,closed:0,overdue:0,rejIn:0,mttr:0,wait:0,block:0,ontime:0};ts.forEach(t=>{const x=TEAM_STATS[t];s.opened+=Math.round(x.opened*f);s.closed+=Math.round(x.closed*f);s.overdue+=x.overdue;s.rejIn+=Math.round(x.rejIn*f);s.mttr+=x.mttr;s.wait+=x.wait;s.block+=x.block;s.ontime+=x.ontime});const n=ts.length||1;s.mttr/=n;s.wait/=n;s.block/=n;s.ontime/=n;return s}
+const h=v=>v>=24?`${Math.floor(v/24)}g ${Math.round(v%24)}s`:`${v.toFixed(1).replace('.',',')} sa`;
+function renderReports(){
+ const id=me(), p=P(id);
+ const filters=`<div class="filters-bar"><div class="field"><label for="rRange">Tarih aralığı</label><select id="rRange"><option value="7" ${rRange==='7'?'selected':''}>Son 7 gün</option><option value="30" ${rRange==='30'?'selected':''}>Son 30 gün</option><option value="90" ${rRange==='90'?'selected':''}>Son 90 gün</option></select></div>
+  ${p.role==='dir'?`<div class="field"><label for="rUnit">Unit</label><select id="rUnit"><option value="">Tümü</option>${Object.keys(UNITS).map(u=>`<option value="${u}" ${u===rUnit?'selected':''}>${UNITS[u].name}</option>`).join('')}</select></div>`:''}
+  ${p.role!=='emp'?`<div class="field"><label for="rTeam">Ekip</label><select id="rTeam"><option value="">Tümü</option>${(p.role==='dir'?Object.keys(TEAMS):managedTeams(id)).filter(t=>!rUnit||TEAMS[t].unit===rUnit).map(t=>`<option ${t===rTeam?'selected':''}>${t}</option>`).join('')}</select></div>`:''}
+  <span style="flex:1"></span>${p.role!=='emp'?'<button class="btn" id="csvBtn">CSV indir</button>':''}</div>`;
+ if(p.role==='emp'){const m=MEMBER_STATS[id];const f=RF[rRange];
+  $('#view').innerHTML=`<div class="head-row"><div><h1>Raporum</h1><p class="sub">Kendi performansınız. Ekip ve kişi karşılaştırmaları yalnızca yöneticilere açıktır.</p></div></div>${filters}
+  <section class="tiles"><div class="tile"><span class="lbl">Kapattığım task</span><span class="val">${Math.round(m[0]*f)}</span><span class="note">Seçili dönemde</span></div><div class="tile"><span class="lbl">Ort. çözüm süresi</span><span class="val">${h(m[1])}</span><span class="note">Ekip ortalaması ${h(TEAM_STATS[p.team].mttr)}</span></div><div class="tile"><span class="lbl">Zamanında tamamlama</span><span class="val">%${m[2]}</span><span class="note">Termin öncesi kapanan</span></div><div class="tile"><span class="lbl">Reddettiğim</span><span class="val">${m[3]}</span><span class="note">Gerekçeli ret kaydı</span></div></section>
+  <section class="panel"><h2>Açık işlerim</h2><div class="rows">${visibleTasks().filter(t=>asgUser(t)===id&&!['Tamamlandı','İptal','Reddedildi'].includes(t.status)).map(t=>taskRow(t)).join('')}</div></section>
+  <p class="lock">${ICON.lock} Çalışan karşılaştırması ve ekip raporları yöneticilere açıktır.</p>`;
+  bindReportFilters();return}
+ const ts=reportTeams(), s=agg(ts), f=RF[rRange];
+ const maxO=Math.max(...ts.map(t=>Math.round(TEAM_STATS[t].opened*f)),1);
+ const maxW=Math.max(...ts.map(t=>TEAM_STATS[t].wait+TEAM_STATS[t].block),1);
+ const wAxis=Math.ceil(maxW/5)*5;
+ const people=ts.flatMap(membersOf).filter(m=>MEMBER_STATS[m]).sort((a,b)=>MEMBER_STATS[b][0]-MEMBER_STATS[a][0]);
+ const flows=REJ_FLOWS.filter(x=>ts.includes(x[0])||ts.includes(x[1]));
+ const openN=s.opened-s.closed>0?s.opened-s.closed:0;
+ $('#view').innerHTML=`<div class="head-row"><div><h1>Raporlar</h1><p class="sub">${p.role==='dir'?'Tüm direktörlük':p.role==='uh'?UNITS[p.unit].name:managedTeams(id).join(', ')} · Geçmiş, olay tarihindeki organizasyon yapısına göre hesaplanır.</p></div></div>${filters}
+ <section class="tiles">
+  <div class="tile"><span class="lbl">Açık / kapalı</span><span class="val">${openN} / ${s.closed}</span><span class="note">Kapanma oranı %${Math.round(s.closed/Math.max(s.opened,1)*100)}</span></div>
+  <div class="tile"><span class="lbl">Ort. çözüm süresi</span><span class="val">${h(s.mttr)}</span><span class="note">Oluşturulma → tamamlandı</span></div>
+  <div class="tile wait"><span class="lbl">Ort. bekleme</span><span class="val">${h(s.wait+s.block)}</span><span class="note">Kabul ${h(s.wait)} + blok ${h(s.block)}</span></div>
+  <div class="tile late"><span class="lbl">Geciken</span><span class="val">${s.overdue}</span><span class="note">Ret oranı %${Math.round(s.rejIn/Math.max(s.opened,1)*100)}</span></div>
+ </section>
+ <div class="grid2">
+  <section class="panel"><div class="panel-head"><h2>Ekip bazlı çözüm performansı</h2><div class="legend"><span><i style="background:var(--low)"></i>Açılan</span><span><i style="background:var(--accent)"></i>Kapanan</span></div></div>
+   <div class="bars">${ts.map(t=>{const x=TEAM_STATS[t],o=Math.round(x.opened*f),c=Math.round(x.closed*f);return`<div class="bar-row"><span class="mono" style="font-size:12px">${t.replace('TEAM-','')}</span><div class="bar-track"><div class="bar b2" style="width:${o/maxO*100}%"></div><div class="bar" style="width:${c/maxO*100}%"></div></div><span class="mono" style="font-size:12px;text-align:right">${o} / ${c} · %${x.ontime}</span></div>`}).join('')}</div>
+   <p class="hint">Sağdaki yüzde: zamanında tamamlanma oranı.</p></section>
+  <section class="panel"><div class="panel-head"><h2>Bekleme süreleri (saat)</h2><div class="legend"><span><i style="background:var(--wait)"></i>Kabul bekleme</span><span><i style="background:var(--orange)"></i>Blok</span></div></div>
+   <div class="bars">${ts.map(t=>{const x=TEAM_STATS[t];return`<div class="bar-row"><span class="mono" style="font-size:12px">${t.replace('TEAM-','')}</span><div class="stacked" style="width:${(x.wait+x.block)/wAxis*100}%"><i style="flex:${x.wait};background:var(--wait)"></i><i style="flex:${x.block};background:var(--orange)"></i></div><span class="mono" style="font-size:12px;text-align:right">${String(x.wait).replace('.',',')} + ${String(x.block).replace('.',',')}</span></div>`}).join('')}</div>
+   <div class="axis"><span>0</span><span>${wAxis/2}</span><span>${wAxis}</span></div></section>
+ </div>
+ <div class="grid2">
+  <section class="panel"><h2>Reddedilen task’lar</h2>
+   <div class="bars">${REJ_REASONS.map(([r,v])=>`<div class="bar-row"><span style="font-size:12.5px">${r}</span><div class="bar b3" style="width:${v/50*100}%"></div><span class="mono" style="font-size:12px;text-align:right">%${v}</span></div>`).join('')}</div>
+   <div class="tbl-wrap"><table><thead><tr><th>Talep eden ekip</th><th>Reddeden ekip</th><th class="num">Adet</th></tr></thead><tbody>${flows.map(x=>`<tr><td><span class="tag team">${x[0]}</span></td><td><span class="tag team">${x[1]}</span></td><td class="num">${Math.max(1,Math.round(x[2]*f))}</td></tr>`).join('')||'<tr><td colspan="3" class="hint">Bu kapsamda ret yok</td></tr>'}</tbody></table></div></section>
+  <section class="panel"><div class="panel-head"><h2>Çalışan karşılaştırması</h2><span class="lock">${ICON.lock} Yalnızca yöneticiler görür</span></div>
+   <div class="tbl-wrap"><table><thead><tr><th>Çalışan</th><th>Ekip</th><th class="num">Kapanan</th><th class="num">Ort. çözüm</th><th class="num">Zamanında</th></tr></thead><tbody>
+   ${people.map(m=>{const x=MEMBER_STATS[m];return`<tr><td><span style="display:inline-flex;gap:8px;align-items:center">${av(m)}${esc(nm(m))}</span></td><td><span class="tag team">${P(m).team.replace('TEAM-','')}</span></td><td class="num">${Math.round(x[0]*f)}</td><td class="num">${h(x[1])}</td><td class="num">%${x[2]}</td></tr>`}).join('')}</tbody></table></div></section>
+ </div>`;
+ bindReportFilters();
+ $('#csvBtn').onclick=()=>{const rows=[['Ekip','Acilan','Kapanan','Ort. cozum (sa)','Kabul bekleme (sa)','Blok (sa)','Geciken','Zamaninda %']].concat(ts.map(t=>{const x=TEAM_STATS[t];return[t,Math.round(x.opened*f),Math.round(x.closed*f),x.mttr,x.wait,x.block,x.overdue,x.ontime]}));
+  const csv=rows.map(r=>r.join(';')).join('\n');try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download=`secopsgrid-ekip-raporu-${rRange}g.csv`;a.click();toast('CSV hazırlandı')}catch(e){toast('CSV indirilemedi')}};
+}
+function bindReportFilters(){const r=$('#rRange');r&&(r.onchange=()=>{rRange=r.value;render()});const u=$('#rUnit');u&&(u.onchange=()=>{rUnit=u.value;rTeam='';render()});const t=$('#rTeam');t&&(t.onchange=()=>{rTeam=t.value;render()})}
+
+/* ---------- Organizasyon ---------- */
+function renderOrg(){
+ const p=P(me()), units=p.role==='dir'?Object.keys(UNITS):[p.unit];
+ $('#view').innerHTML=`<div class="head-row"><div><h1>Organizasyon</h1><p class="sub">Direktörlük → Unit → Ekip → Çalışan. ${p.role==='dir'?'Unit, ekip, kullanıcı ve rolleri yönetirsiniz.':'Unit’inizdeki ekip üyeliklerini ve Team Head atamalarını yönetirsiniz.'}</p></div>
+  <div class="appr-actions">${p.role==='dir'?'<button class="btn" data-demo="Unit ekleme">Unit ekle</button><button class="btn" data-demo="Ekip ekleme">Ekip ekle</button>':''}<button class="btn primary" data-demo="Kullanıcı taşıma">Kullanıcı taşı</button></div></div>
+ ${units.map(u=>`<section class="panel unit"><div class="panel-head"><div><h2 style="color:var(--fg)">${UNITS[u].name}</h2><span class="hint">Unit Head: ${esc(nm(UNITS[u].head))}</span></div><button class="btn sm" data-demo="Team Head atama">Team Head ata</button></div>
+  ${Object.keys(TEAMS).filter(t=>TEAMS[t].unit===u).map(t=>{const T=TEAMS[t];return`<div class="team-row"><div><span class="tag team">${t}</span><div class="hint" style="margin-top:4px">${esc(T.name)}</div></div>
+   <div style="display:grid;gap:6px;min-width:0"><div>${T.head?`<span class="hint">Team Head:</span> ${esc(nm(T.head))}`:`<span class="warn-chip">Team Head yok · doğrudan Unit Head’e bağlı</span>`}</div><div class="members">${membersOf(t).map(m=>av(m)).join('')}</div></div>
+   <button class="btn sm ghost" data-demo="Üye ekleme">Üye ekle</button></div>`}).join('')}</section>`).join('')}
+ <section class="panel"><h2>Yapı değişikliği kayıtları</h2><ul class="timeline">
+  <li><time>12 Kas</time>Deniz Şahin TEAM-SOC → TEAM-WAF taşındı (Hakan Aydın). Açık task’ları eski ekipte kaldı, bekleyen onaylar yeni sorumlu yöneticiye geçti.</li>
+  <li><time>3 Kas</time>Okan Kurt, TEAM-TI Team Head olarak atandı (Ayşe Korkmaz).</li>
+  <li><time>28 Eki</time>TEAM-WAF Team Head ataması kaldırıldı, ekip Unit Head’e bağlandı.</li></ul>
+  <p class="hint">Geçmiş raporlar, değişikliğin olduğu tarihteki yapıya göre hesaplanır.</p></section>`;
+}
+
+/* ---------- API & MCP ---------- */
+function renderApi(){
+ const cfg=`{
+  "mcpServers": {
+    "secopsgrid": {
+      "url": "https://secopsgrid.sirket.local/mcp",
+      "headers": { "Authorization": "Bearer <kişisel erişim anahtarınız>" }
+    }
+  }
+}`;
+ $('#view').innerHTML=`<div class="head-row"><div><h1>API & MCP</h1><p class="sub">Task, etkinlik ve raporlara REST veya MCP ile erişin. Her çağrı, web arayüzüyle aynı yetki katmanından geçer: bir ajan sizin göremediğiniz bir şeyi göremez.</p></div></div>
+ <div class="grid2">
+  <div class="stack">
+   <section class="panel"><div class="panel-head"><h2>MCP sunucusu</h2><button class="btn sm" id="copyCfg">Yapılandırmayı kopyala</button></div><pre class="code" id="cfg">${esc(cfg)}</pre><p class="hint">Claude, Cursor veya başka bir MCP istemcisine ekleyin. v1’de ajanlar yalnızca okuma yapabilir.</p></section>
+   <section class="panel"><h2>MCP araçları</h2><div>
+    ${[['list_tasks','Görebildiğiniz task’ları filtreyle listeler','okuma'],['get_task','Task ayrıntısı, kabul zinciri ve denetim izi','okuma'],['list_pending_approvals','Kararınızı bekleyen işler','okuma'],['list_events','Etkinlikler ve onay durumları','okuma'],['get_team_report','Ekip metrikleri (yönetici yetkisi gerekir)','okuma'],['create_task','Task oluşturma','v1 sonrası']].map(([n,d,s])=>`<div class="tool"><code>${n}</code><span class="muted" style="flex:1 1 200px">${d}</span><span class="st ${s==='okuma'?'done':''}">${s}</span></div>`).join('')}</div></section>
+  </div>
+  <div class="stack">
+   <section class="panel"><h2>REST uç noktaları</h2><div>
+    ${[['GET','/api/v1/tasks?scope=mine|team|opened'],['GET','/api/v1/tasks/{id}'],['POST','/api/v1/tasks'],['POST','/api/v1/tasks/{id}/accept'],['POST','/api/v1/tasks/{id}/refuse'],['GET','/api/v1/approvals'],['GET','/api/v1/events'],['GET','/api/v1/reports/teams?from=&to=&unit=&team=']].map(([m,u])=>`<div class="ep"><span class="method ${m.toLowerCase()}">${m}</span><code>${u}</code></div>`).join('')}</div></section>
+   <section class="panel"><div class="panel-head"><h2>Erişim anahtarlarım</h2><button class="btn sm" data-demo="Anahtar oluşturma">Yeni anahtar</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Ad</th><th>Kapsam</th><th>Son kullanım</th></tr></thead><tbody>
+     <tr><td>Rapor ajanı (Claude)</td><td><span class="tag">tasks:read</span> <span class="tag">reports:read</span></td><td class="mono">2 saat önce</td></tr>
+     <tr><td>Vardiya devri botu</td><td><span class="tag">tasks:read</span></td><td class="mono">Dün</td></tr></tbody></table></div>
+    <p class="hint">Anahtar, sahibinin rolüyle sınırlıdır. Rol değişirse kapsam da otomatik değişir.</p></section>
+  </div>
+ </div>`;
+ $('#copyCfg').onclick=()=>{navigator.clipboard?.writeText(cfg).then(()=>toast('Kopyalandı'),()=>{selectText($('#cfg'));toast('Metin seçildi, Ctrl+C ile kopyalayın')})??(selectText($('#cfg')),toast('Metin seçildi'))};
+}
+function selectText(el){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}
+
+/* ---------- Bildirimler ---------- */
+function openNotifs(){
+ drawerTask=null; const list=notifs[me()]||[];
+ $('#drawer').innerHTML=`<div class="drawer-head"><b style="font-family:var(--f-display);font-size:17px">Bildirimler</b><button class="btn sm ghost" id="markAll" style="margin-left:auto">Tümünü okundu say</button><button class="btn icon-btn ghost" data-close aria-label="Kapat">${ICON.close}</button></div>
+ <div class="drawer-body"><div>${list.map((n,i)=>`<button class="notif ${n.unread?'unread':''}" data-notif="${i}"><span class="nd"></span><span><time>${esc(n.t)}</time>${esc(n.txt)}</span></button>`).join('')||'<div class="empty">Bildirim yok.</div>'}</div>
+ <section class="sec"><h2>Bildirim tercihleri</h2><div class="tbl-wrap"><table class="prefs"><thead><tr><th>Olay</th><th class="num">Uygulama içi</th><th class="num">E-posta</th></tr></thead><tbody>
+  ${PREF_EVENTS.map((e,i)=>`<tr><td>${e}</td><td class="num"><input type="checkbox" id="pf-${i}-0" data-pref="${i}:0" ${prefs[i][0]?'checked':''} aria-label="${e} uygulama içi"></td><td class="num"><input type="checkbox" id="pf-${i}-1" data-pref="${i}:1" ${prefs[i][1]?'checked':''} aria-label="${e} e-posta"></td></tr>`).join('')}</tbody></table></div><p class="hint">Teams ve Slack entegrasyonu sonraki sürümde.</p></section></div>`;
+ $('#drawer').hidden=false;$('#scrim').hidden=false;
+ $('#markAll').onclick=()=>{list.forEach(n=>n.unread=false);renderShell();openNotifs()};
+}
+
+/* ---------- olaylar ---------- */
+document.addEventListener('click',e=>{
+ const g=(sel)=>e.target.closest(sel);
+ let el;
+ if(el=g('[data-role]')){role=el.dataset.role;closeDrawer();closeModal();if(!allowedViews().some(v=>v[0]===location.hash.slice(1)))location.hash='ana';boardScope='all';rTeam='';rUnit='';render();toast(`${nm(me())} (${ROLE_LABEL[role]}) olarak görüntülüyorsunuz`);return}
+ if(el=g('[data-notif]')){const n=notifs[me()][+el.dataset.notif];n.unread=false;renderShell();if(n.task){openTask(n.task)}else openNotifs();return}
+ if(el=g('[data-accept]')){accept(tasks.find(t=>t.id===el.dataset.accept));return}
+ if(el=g('[data-refuse]')){openRefuse(tasks.find(t=>t.id===el.dataset.refuse));return}
+ if(el=g('[data-return]')){openRefuse(tasks.find(t=>t.id===el.dataset.return),'return');return}
+ if(el=g('[data-delegate]')){openDelegate(tasks.find(t=>t.id===el.dataset.delegate));return}
+ if(el=g('[data-reassign]')){openNew({reassign:tasks.find(t=>t.id===el.dataset.reassign)});return}
+ if(el=g('[data-cancel]')){const t=tasks.find(x=>x.id===el.dataset.cancel);t.status='İptal';log(t,`${nm(me())} iptal etti`);toast(`${t.id} iptal edildi`);refresh(t);return}
+ if(el=g('[data-evok]')||g('[data-evno]')){const ok=!!el.dataset.evok;const ev=events.find(x=>x.id===(el.dataset.evok||el.dataset.evno));ev.status=ok?'ok':'no';notify(ev.person,`${ev.title}: ${ok?'onaylandı':'reddedildi'}.`);toast(ok?'Etkinlik onaylandı':'Etkinlik reddedildi');render();return}
+ if(el=g('[data-rsvp]')){const[id,v]=el.dataset.rsvp.split(':');events.find(x=>x.id===id).rsvp[me()]=v;toast(v==='yes'?'Katılımınız kaydedildi':'Yanıtınız kaydedildi');render();return}
+ if(el=g('[data-open]')){openTask(el.dataset.open);return}
+ if(g('[data-mclose]')||e.target===$('#mscrim')||e.target===$('#modalWrap')){closeModal();return}
+ if(g('[data-close]')||e.target===$('#scrim')){closeDrawer();return}
+ if(el=g('[data-go]')){location.hash=el.dataset.go;return}
+ if(el=g('[data-scope]')){boardScope=el.dataset.scope;render();return}
+ if(el=g('[data-pri]')){const k=el.dataset.pri;priF.has(k)?priF.delete(k):priF.add(k);render();return}
+ if(el=g('[data-demo]')){toast(`${el.dataset.demo}: bu prototipte gösterim amaçlı. Değişiklik denetim izine yazılır.`);return}
+});
+document.addEventListener('change',e=>{if(e.target.id==='teamF'){teamF=e.target.value;render()}if(e.target.id==='kindF'){kindF=e.target.value;render()}if(e.target.dataset.pref){const[i,c]=e.target.dataset.pref.split(':');prefs[i][c]=e.target.checked;toast('Tercih kaydedildi')}});
+$('#q').addEventListener('input',e=>{q=e.target.value.trim().toLocaleLowerCase('tr');if(!['gorevler','ana'].includes(current()))location.hash='gorevler';else render()});
+$('#newBtn').onclick=()=>openNew();
+$('#bellBtn').onclick=openNotifs;
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){if(!$('#modalWrap').hidden)closeModal();else if(!$('#drawer').hidden)closeDrawer()}
+ if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){e.preventDefault();$('#q').focus()}
+});
+window.addEventListener('hashchange',()=>{closeDrawer();render()});
+render();
+</script>
