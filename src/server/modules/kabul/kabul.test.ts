@@ -4,6 +4,8 @@ import { kullanici } from '../../core/actor';
 import { F } from '../../seed/fixture';
 import { seedKabulDemo } from '../../seed/kabul-demo';
 import { seedTaskDemo } from '../../seed/task-demo';
+import { seedTaskDurumDemo } from '../../seed/task-durum-demo';
+import { seedRaporDemo } from '../../seed/rapor-demo';
 
 const t = useTestDb();
 
@@ -195,9 +197,54 @@ describe('Organizasyon değişimi', () => {
   });
 });
 
+describe('Bekleyen işlerim ve raporlar (karar kayıtlarından)', () => {
+  it("Bekleyen işlerim zincirin o anki adımını gösterir; bekleme yaşı adımın başlangıcıdır", async () => {
+    const task = await ata(F.waf1, { assigneeKullaniciId: F.cti1 });
+    expect((await t.services.bekleyen.listele(kullanici(F.thCti))).filter((x) => x.tur === 'TASK_KABUL')).toEqual([]);
+    t.now = new Date('2026-03-02T11:00:00Z');
+    await t.services.kabul.kabulEt(kullanici(F.cti1), task.id);
+    const liste = (await t.services.bekleyen.listele(kullanici(F.thCti))).filter((x) => x.tur === 'TASK_KABUL');
+    expect(liste.map((x) => [x.id, x.neden, x.beklemeBaslangici.toISOString()])).toEqual([
+      [task.id, 'Sorumlu yönetici onayı', '2026-03-02T11:00:00.000Z'],
+    ]);
+    expect((await t.services.bekleyen.listele(kullanici(F.cti1))).filter((x) => x.tur === 'TASK_KABUL')).toEqual([]);
+  });
+
+  it('kabul bekleme süresi ve ret raporu (oran, gerekçe, Ekip akışı) karar kayıtlarından hesaplanır', async () => {
+    const saat = (h: number) => (t.now = new Date(`2026-03-02T${String(h).padStart(2, '0')}:00:00Z`));
+    saat(9);
+    const a = await ata(F.waf1, { assigneeKullaniciId: F.cti1 });
+    const b = await ata(F.waf1, { assigneeKullaniciId: F.waf2 });
+    const c = await ata(F.soc1, { assigneeKullaniciId: F.cti2 });
+    await ata(F.thCoklu, { assigneeKullaniciId: F.soc1 }); // direkt kabul: sayılmaz
+    saat(10);
+    await t.services.kabul.kabulEt(kullanici(F.waf2), b.id); // 1 saat
+    saat(11);
+    await t.services.kabul.kabulEt(kullanici(F.cti1), a.id); // 2 saat
+    saat(12);
+    await t.services.kabul.reddet(kullanici(F.cti2), c.id, 'Kapasite'); // 3 saat
+    saat(15);
+    await t.services.kabul.reddet(kullanici(F.thCti), a.id, 'Kapasite'); // 4 saat (adım 11:00'de başladı)
+
+    const r = await t.services.rapor.ozet(kullanici(F.direktor));
+    expect(r.kabulBekleme).toEqual({ adet: 4, ortSaat: 2.5 });
+    expect(r.retRaporu).toEqual({
+      retOrani: 0.667,
+      gerekceler: [{ gerekce: 'Kapasite', adet: 2 }],
+      akis: expect.arrayContaining([
+        { kaynakEkipId: F.ekipWaf, hedefEkipId: F.ekipCti, adet: 1 },
+        { kaynakEkipId: F.ekipSoc, hedefEkipId: F.ekipCti, adet: 1 },
+      ]),
+    });
+    expect(r.retRaporu!.akis).toHaveLength(2);
+  });
+});
+
 describe('Demo seed', () => {
   it('demo zincirleri yüklenir: bekleyen, yarı kabul edilmiş ve reddedilmiş Task var', async () => {
     await seedTaskDemo(t.db, t.now);
+    await seedTaskDurumDemo(t.db, t.now);
+    await seedRaporDemo(t.db, t.now);
     await seedKabulDemo(t.services);
     const cti1 = (await t.services.kabul.bekleyenler(kullanici(F.cti1))).map((b) => b.task.baslik);
     expect(cti1).toContain('Phishing kampanyası IOC zenginleştirme');

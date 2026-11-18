@@ -8,16 +8,21 @@ import { EtkinlikSayfasi } from './pages/Etkinlik';
 import { DuyuruSayfasi } from './pages/Duyuru';
 import { YetkinlikSayfasi } from './pages/Yetkinlik';
 import { BildirimSayfasi } from './pages/Bildirimler';
+import { BekleyenIslerimSayfasi } from './pages/BekleyenIslerim';
+import { RaporSayfasi } from './pages/Rapor';
 import type { Profil } from './types';
 
 /** Sayfa kaydı: yeni modül sayfası = bir satır. */
 const SAYFALAR: Array<{ id: string; baslik: string; bilesen: ComponentType<{ ben: Profil }> }> = [
+  // İlk sayfa = girişten sonraki açılış sayfası.
+  { id: 'bekleyen', baslik: 'Bekleyen işlerim', bilesen: BekleyenIslerimSayfasi },
   { id: 'organizasyon', baslik: 'Organizasyon', bilesen: OrganizasyonSayfasi },
   { id: 'tasklar', baslik: "Task'lar", bilesen: TasklarSayfasi },
   { id: 'etkinlik', baslik: 'Etkinlikler', bilesen: EtkinlikSayfasi },
   { id: 'duyuru', baslik: 'Duyurular', bilesen: DuyuruSayfasi },
   { id: 'yetkinlik', baslik: 'Yetkinlikler', bilesen: YetkinlikSayfasi },
   { id: 'bildirim', baslik: 'Bildirimler', bilesen: BildirimSayfasi },
+  { id: 'rapor', baslik: 'Rapor', bilesen: RaporSayfasi },
 ];
 
 
@@ -37,7 +42,7 @@ export function App() {
   }, []);
 
   if (yukleniyor) return <main>Yükleniyor…</main>;
-  if (!ben) return <GirisSayfasi onGiris={(token) => { setToken(token); setYukleniyor(true); profiliYukle(); }} />;
+  if (!ben) return <GirisSayfasi onGiris={(token) => { setToken(token); setSayfa(SAYFALAR[0].id); setYukleniyor(true); profiliYukle(); }} />;
 
   const Aktif = SAYFALAR.find((s) => s.id === sayfa)!.bilesen;
   return (
