@@ -5,6 +5,10 @@ export interface Config {
   denetimSaklamaYil: number;
   /** Eskalasyon süresi (iş günü). Spec: varsayılan 3. */
   eskalasyonIsGunu: number;
+  /** Task dosya eklerinin diskteki dizini (gitignore'da). */
+  ekDizini: string;
+  /** Tek dosya eki için üst sınır (bayt). */
+  ekMaxBayt: number;
   /** Termin yaklaşma bildirimi penceresi (gün). Ticket 08: varsayılan 2. */
   terminYaklasmaGun: number;
 }
@@ -12,6 +16,8 @@ export interface Config {
 export const DEFAULT_CONFIG: Config = {
   denetimSaklamaYil: 5,
   eskalasyonIsGunu: 3,
+  ekDizini: process.env.EK_DIZINI ?? '.ekler',
+  ekMaxBayt: 10 * 1024 * 1024,
   terminYaklasmaGun: 2,
 };
 

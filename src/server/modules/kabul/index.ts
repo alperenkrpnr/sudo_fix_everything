@@ -8,6 +8,7 @@ import { BulunamadiHatasi, DogrulamaHatasi, YetkiHatasi } from '../../core/error
 import type { Tx } from '../../db/client';
 import { bildirimGonder } from '../bildirim';
 import { durumGecisiKaydet } from '../task/durum';
+import { delegasyonIslemleri } from './delegasyon';
 import {
   adimOnaylayicilari,
   kabulZinciriPlani,
@@ -22,6 +23,7 @@ import {
 } from '../yetki';
 
 export type { ZincirPlani };
+export { bekleyenDelegasyonlariGetir, ekipGelenKutusuHesapla, type BekleyenDelegasyon, type EkipGelenKutusu, type GelenKutusuKaydi } from './delegasyon';
 
 export interface KabulAdimGorunumu extends KabulAdimi {
   /** Adımın şu anki onaylayıcıları (bekleyen SORUMLU adımda karar anında çözülür). */
@@ -132,6 +134,8 @@ export interface YenidenAtaGirdisi {
 
 export function kabulServisi(ctx: ServiceContext) {
   return {
+    ...delegasyonIslemleri(ctx),
+
     /** Çağıranın üzerinde bekleyen kabul adımları. */
     bekleyenler(actor: Actor): Promise<BekleyenKabul[]> {
       return oku(ctx, actor, 'kabul.bekleyenler', (kimlik, tx) => bekleyenKabulAdimlari(tx, kimlik.kullaniciId, kimlik.zaman));

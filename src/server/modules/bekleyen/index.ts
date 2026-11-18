@@ -7,10 +7,10 @@ import type { Actor } from '../../core/actor';
 import type { ServiceContext } from '../../core/context';
 import type { Tx } from '../../db/client';
 import { bekleyenDavetleriGetir } from '../etkinlik';
-import { bekleyenKabulAdimlari } from '../kabul';
+import { bekleyenDelegasyonlariGetir, bekleyenKabulAdimlari, ekipGelenKutusuHesapla } from '../kabul';
 import { oku } from '../yetki';
 
-export type BekleyenTuru = 'TASK_KABUL' | 'ETKINLIK_DAVETI';
+export type BekleyenTuru = 'TASK_KABUL' | 'ETKINLIK_DAVETI' | 'DELEGASYON' | 'EKIP_HAVUZU';
 
 export interface BekleyenIs {
   tur: BekleyenTuru;
@@ -49,6 +49,29 @@ export async function bekleyenKabuller(tx: Tx, kullaniciId: string, t: Date): Pr
   }));
 }
 
+/**
+ * Ticket 06: bana delege edilmiş, yanıt bekleyen Task'lar (DELEGASYON) ve Sorumlu yöneticisi olduğum
+ * Ekiplerin havuzunda delege edilmeyi bekleyen Task'lar (EKIP_HAVUZU).
+ */
+export async function bekleyenDelegasyonIsleri(tx: Tx, kullaniciId: string, t: Date): Promise<BekleyenIs[]> {
+  const [dels, kutu] = await Promise.all([bekleyenDelegasyonlariGetir(tx, kullaniciId), ekipGelenKutusuHesapla(tx, kullaniciId, t)]);
+  const kod = new Map(
+    (await tx.ekip.findMany({ where: { id: { in: dels.map((d) => d.ekipId) } }, select: { id: true, kod: true } })).map((e) => [e.id, e.kod]),
+  );
+  const bana: BekleyenIs[] = dels.map((d) => ({
+    tur: 'DELEGASYON',
+    id: d.task.id,
+    baslik: d.task.baslik,
+    termin: d.task.bitisTarihi,
+    beklemeBaslangici: d.baslangic,
+    neden: `Delegasyon: ${kod.get(d.ekipId) ?? d.ekipId}`,
+  }));
+  const havuz: BekleyenIs[] = kutu.kayitlar
+    .filter((k) => k.tur === 'HAVUZ')
+    .map((k) => ({ tur: 'EKIP_HAVUZU', id: k.task.id, baslik: k.task.baslik, termin: k.task.bitisTarihi, beklemeBaslangici: k.beklemeBaslangici, neden: `Delege et: ${k.ekipKod}` }));
+  return [...bana, ...havuz];
+}
+
 function sirala(a: BekleyenIs, b: BekleyenIs): number {
   const ta = a.termin?.getTime() ?? Infinity;
   const tb = b.termin?.getTime() ?? Infinity;
@@ -61,9 +84,10 @@ export function bekleyenServisi(ctx: ServiceContext) {
     /** Çağıranın bekleyen işleri (kabuller + davetler), termine sonra yaşa göre sıralı. */
     listele(actor: Actor): Promise<BekleyenIs[]> {
       return oku(ctx, actor, 'bekleyen.listele', async (kimlik, tx) => {
-        const [kabuller, davetler] = await Promise.all([
+        const [kabuller, davetler, delegasyonlar] = await Promise.all([
           bekleyenKabuller(tx, kimlik.kullaniciId, kimlik.zaman),
           bekleyenDavetleriGetir(tx, kimlik.kullaniciId, kimlik.zaman),
+          bekleyenDelegasyonIsleri(tx, kimlik.kullaniciId, kimlik.zaman),
         ]);
         const davetIsleri: BekleyenIs[] = davetler.map((d) => ({
           tur: 'ETKINLIK_DAVETI',
@@ -73,7 +97,7 @@ export function bekleyenServisi(ctx: ServiceContext) {
           beklemeBaslangici: d.etkinlik.baslangic,
           neden: 'Etkinlik daveti',
         }));
-        return [...kabuller, ...davetIsleri].sort(sirala);
+        return [...kabuller, ...davetIsleri, ...delegasyonlar].sort(sirala);
       });
     },
   };
