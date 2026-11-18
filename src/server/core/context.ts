@@ -5,11 +5,14 @@ export interface Config {
   denetimSaklamaYil: number;
   /** Eskalasyon süresi (iş günü). Spec: varsayılan 3. */
   eskalasyonIsGunu: number;
+  /** Termin yaklaşma bildirimi penceresi (gün). Ticket 08: varsayılan 2. */
+  terminYaklasmaGun: number;
 }
 
 export const DEFAULT_CONFIG: Config = {
   denetimSaklamaYil: 5,
   eskalasyonIsGunu: 3,
+  terminYaklasmaGun: 2,
 };
 
 /** Shared dependencies handed to every module service. */
