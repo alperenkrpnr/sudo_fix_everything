@@ -36,4 +36,15 @@ describe('web adaptörü', () => {
     const res = await fetch(`${base}/api/denetim`, { headers: { authorization: `Bearer mock:${F.waf1}` } });
     expect(res.status).toBe(403);
   });
+
+  it('organizasyon yazma uçları servise iletir (Team Head üye ekler, Çalışan ekleyemez)', async () => {
+    const ekle = (kim: string) =>
+      fetch(`${base}/api/organizasyon/uye-ekle`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer mock:${kim}` },
+        body: JSON.stringify({ ekipId: F.ekipWaf, kullaniciId: F.pentest1 }),
+      });
+    expect((await ekle(F.waf1)).status).toBe(403);
+    expect((await ekle(F.thCoklu)).status).toBe(200);
+  });
 });

@@ -4,6 +4,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type { Actor } from '../core/actor';
 import type { Services } from '../services';
+import { organizasyonRouter } from './organizasyon';
 
 const HTTP_KODU: Record<string, number> = { KIMLIK: 401, YETKI: 403, BULUNAMADI: 404, DOGRULAMA: 400 };
 
@@ -39,6 +40,7 @@ export function createApp(services: Services) {
       services.organizasyon.yapiyiGetir(actor, { tarih: req.query.tarih ? new Date(String(req.query.tarih)) : undefined }),
     ),
   );
+  app.use('/api/organizasyon', organizasyonRouter(services));
   app.get('/api/denetim', handler(services, (req, actor) => services.denetim.listele(actor, { islem: req.query.islem as string | undefined })));
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
