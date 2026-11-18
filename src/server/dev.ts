@@ -8,6 +8,7 @@ import { ROOT, adminQuery, applySchema, createDatabase, startPostgres } from './
 import { createApp } from './http/app';
 import { seedFixture } from './seed/fixture';
 import { seedTaskDemo } from './seed/task-demo';
+import { seedTaskDurumDemo } from './seed/task-durum-demo';
 import { seedRaporDemo } from './seed/rapor-demo';
 import { seedEtkinlikDemo } from './seed/demo-etkinlik';
 import { createServices } from './services';
@@ -24,6 +25,8 @@ await applySchema(pg.url(DB_NAME));
 const db = createDb(pg.url(DB_NAME));
 await seedFixture(db);
 await seedTaskDemo(db);
+await seedTaskDurumDemo(db);
+// After seedTaskDurumDemo: rapor-demo writes its own durum tarihçesi.
 await seedRaporDemo(db);
 
 const services = createServices({ db });

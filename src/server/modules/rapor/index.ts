@@ -4,14 +4,15 @@
 // Tanımlar: TASLAK sayılmaz. Kapalı = TAMAMLANDI | IPTAL | REDDEDILDI; diğerleri açık.
 // Geciken = açık ve bitisTarihi < şimdi. Çözüm süresi yalnızca TAMAMLANDI için.
 //
-// SWAP POINT'ler (aşağıdaki fonksiyonlar): `cozumSureleri` (04: durum geçmişi), `kabulBeklemeOzeti`
-// (05: karar kayıtları), `blokSuresiOzeti` (04), `retRaporu` (05).
+// Çözüm ve blok süresi ticket 04'ün durum tarihçesinden (`durumOzetleri` → `cozumSureleri`, `blokSuresiOzeti`).
+// SWAP POINT'ler (ticket 05 karar kayıtları gelince): `kabulBeklemeOzeti`, `retRaporu` (şimdilik null = veri yok).
 // TODO (ADR-0002, ertelendi): Task'ın Ekibi `task.ekipId` (oluşturma anındaki); kapsam güncel yapıdan çözülür.
 import type { Task, TaskDurum } from '@prisma/client';
 import type { Actor } from '../../core/actor';
 import type { ServiceContext } from '../../core/context';
 import { YetkiHatasi } from '../../core/errors';
 import type { Tx } from '../../db/client';
+import { durumOzeti } from '../task/durum';
 import { oku, yonetimKapsami } from '../yetki';
 import { yoneticiMi } from '../yetki/gorunurluk';
 
@@ -39,8 +40,8 @@ export interface RaporOzeti {
   calisanlar: Array<Metrik & { kullaniciId: string; ad: string }> | null;
   /** null = veri yok (ticket 05 kabul kararları gelince dolar). */
   kabulBekleme: SureOzeti | null;
-  /** null = veri yok (ticket 04 durum geçmişi gelince dolar). */
-  blokSuresi: SureOzeti | null;
+  /** Durum tarihçesinden (ticket 04); adet = bloklu kalmış Task sayısı. */
+  blokSuresi: SureOzeti;
   /** null = veri yok (ticket 05 ret kayıtları gelince dolar). */
   retRaporu: { retOrani: number; gerekceler: Array<{ gerekce: string; adet: number }>; akis: Array<{ kaynakEkipId: string | null; hedefEkipId: string | null; adet: number }> } | null;
 }
@@ -53,12 +54,29 @@ export interface RaporFiltresi {
 const KAPALI: TaskDurum[] = ['TAMAMLANDI', 'IPTAL', 'REDDEDILDI'];
 const SAAT = 3_600_000;
 
+type DurumOzetleri = Map<string, ReturnType<typeof durumOzeti>>;
+
+/** Task başına durum tarihçesi özeti (ticket 04): blok süresi ve tamamlanma anı. Tarihçesi olmayan Task yok sayılır. */
+export async function durumOzetleri(tx: Tx, tasks: Task[], simdi: Date): Promise<DurumOzetleri> {
+  const gecisler = await tx.taskDurumGecisi.findMany({
+    where: { taskId: { in: tasks.map((x) => x.id) } },
+    orderBy: [{ zaman: 'asc' }, { id: 'asc' }],
+  });
+  const grup = new Map<string, typeof gecisler>();
+  for (const g of gecisler) grup.set(g.taskId, [...(grup.get(g.taskId) ?? []), g]);
+  return new Map([...grup].map(([id, gs]) => [id, durumOzeti(gs, simdi)]));
+}
+
 /**
- * SWAP POINT (ticket 04): TAMAMLANDI Task'ların çözüm süresi (ms), olusturma → tamamlanma.
- * Şimdilik tamamlanma anı = `guncelleme` (durum geçmişi yok). 04 birleşince TAMAMLANDI geçişinin zamanını kullanın.
+ * TAMAMLANDI Task'ların çözüm süresi (ms): olusturma → tarihçedeki son TAMAMLANDI geçişi.
+ * Tarihçesi olmayan (04 öncesi / doğrudan yazılmış) Task'larda yedek: `guncelleme`.
  */
-export async function cozumSureleri(_tx: Tx, tasks: Task[]): Promise<Map<string, number>> {
-  return new Map(tasks.filter((x) => x.durum === 'TAMAMLANDI').map((x) => [x.id, x.guncelleme.getTime() - x.olusturma.getTime()]));
+export function cozumSureleri(tasks: Task[], ozetler: DurumOzetleri): Map<string, number> {
+  return new Map(
+    tasks
+      .filter((x) => x.durum === 'TAMAMLANDI')
+      .map((x) => [x.id, (ozetler.get(x.id)?.tamamlanma ?? x.guncelleme).getTime() - x.olusturma.getTime()]),
+  );
 }
 
 /** SWAP POINT (ticket 05): kabul bekleme süresi (KABUL_BEKLIYOR → karar). Veri yok → null. */
@@ -66,9 +84,11 @@ export async function kabulBeklemeOzeti(_tx: Tx, _tasks: Task[]): Promise<SureOz
   return null;
 }
 
-/** SWAP POINT (ticket 04): BLOKLU'da geçen toplam süre. Veri yok → null. */
-export async function blokSuresiOzeti(_tx: Tx, _tasks: Task[]): Promise<SureOzeti | null> {
-  return null;
+/** Bloklu kalmış Task'lar ve Task başına ortalama blok süresi (hâlâ bloklu olan şimdiye kadar). */
+export function blokSuresiOzeti(ozetler: DurumOzetleri): SureOzeti {
+  const sureler = [...ozetler.values()].map((o) => o.blokSuresiMs).filter((ms) => ms > 0);
+  const ort = sureler.length ? sureler.reduce((a, b) => a + b, 0) / sureler.length / SAAT : null;
+  return { adet: sureler.length, ortSaat: ort === null ? null : Math.round(ort * 10) / 10 };
 }
 
 /** SWAP POINT (ticket 05): ret oranı, gerekçe dağılımı, Ekip'ten Ekip'e ret akışı. Veri yok → null. */
@@ -129,12 +149,10 @@ export function raporServisi(ctx: ServiceContext) {
               : { assigneeKullaniciId: kimlik.kullaniciId, ...(ekipIds ? { ekipId: { in: ekipIds } } : {}) }),
           },
         });
-        const sureler = await cozumSureleri(tx, tasks);
-        const [kabulBekleme, blokSuresi, ret] = await Promise.all([
-          kabulBeklemeOzeti(tx, tasks),
-          blokSuresiOzeti(tx, tasks),
-          retRaporu(tx, tasks),
-        ]);
+        const ozetler = await durumOzetleri(tx, tasks, simdi);
+        const sureler = cozumSureleri(tasks, ozetler);
+        const blokSuresi = blokSuresiOzeti(ozetler);
+        const [kabulBekleme, ret] = await Promise.all([kabulBeklemeOzeti(tx, tasks), retRaporu(tx, tasks)]);
         const sonuc: RaporOzeti = {
           kapsam: kapsam.tumu ? 'TUMU' : yonetici ? 'YONETICI' : 'KENDI',
           genel: metrik(tasks, sureler, simdi),

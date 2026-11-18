@@ -7,8 +7,8 @@ import { seedRaporDemo } from '../../seed/rapor-demo';
 const t = useTestDb();
 const d = (s: string) => new Date(`2026-${s}Z`);
 
-// Saat: 2026-03-02T09:00Z (TEST_NOW). Durum geçişleri henüz servisle yapılamadığından (ticket 04)
-// Task'lar doğrudan düzenlenir. Çözüm süresi = olusturma → guncelleme (TAMAMLANDI için).
+// Saat: 2026-03-02T09:00Z (TEST_NOW). Bu Task'lar tarihçesiz doğrudan yazılır
+// (yedek: çözüm süresi = olusturma → guncelleme). Tarihçeli senaryo aşağıda servis üzerinden.
 beforeEach(async () => {
   const task = (id: string, ekipId: string, k: string | null, durum: string, olusturma: string, guncelleme: string, bitis?: string) => ({
     id,
@@ -88,11 +88,33 @@ describe('Rapor: rol kapsamı ve sayılar', () => {
     await expect(t.services.rapor.ozet(kullanici(F.thCoklu), { ekipId: F.ekipCti })).rejects.toMatchObject({ kod: 'YETKI' });
   });
 
-  it('Kabul bekleme, blok süresi ve ret raporu verisi henüz yok (05/04)', async () => {
+  it('Kabul bekleme ve ret raporu verisi henüz yok (05); tarihçesiz kapsamda blok süresi boş', async () => {
     const r = await t.services.rapor.ozet(kullanici(F.direktor));
     expect(r.kabulBekleme).toBeNull();
-    expect(r.blokSuresi).toBeNull();
     expect(r.retRaporu).toBeNull();
+    expect(r.blokSuresi).toEqual({ adet: 0, ortSaat: null });
+  });
+
+  it('Çözüm süresi ve blok süresi durum tarihçesinden hesaplanır (sonraki alan düzenlemesi etkilemez)', async () => {
+    const osint = kullanici(F.osint1);
+    const durum = (id: string, yeni: 'DEVAM_EDIYOR' | 'BLOKLU' | 'TAMAMLANDI', saat: string) => {
+      t.now = d(saat);
+      return t.services.task.durumDegistir(osint, id, { durum: yeni, neden: yeni === 'BLOKLU' ? 'Erişim bekleniyor' : null });
+    };
+    t.now = d('03-02T09:00:00');
+    const a = await t.services.task.olustur(kullanici(F.uhIstihbarat), { baslik: 'A', assigneeKullaniciId: F.osint1 });
+    const b = await t.services.task.olustur(kullanici(F.uhIstihbarat), { baslik: 'B', assigneeKullaniciId: F.osint1 });
+    await durum(a.id, 'DEVAM_EDIYOR', '03-02T10:00:00');
+    await durum(a.id, 'BLOKLU', '03-02T12:00:00');
+    await durum(a.id, 'DEVAM_EDIYOR', '03-02T17:00:00'); // 5 sa blok
+    await durum(a.id, 'TAMAMLANDI', '03-03T09:00:00'); // çözüm 24 sa
+    await durum(b.id, 'BLOKLU', '03-05T06:00:00'); // hâlâ bloklu: 3 sa (rapor anına kadar)
+    t.now = d('03-05T09:00:00');
+    await t.services.task.guncelle(kullanici(F.uhIstihbarat), a.id, { baslik: 'A (düzenlendi)' });
+
+    const r = await t.services.rapor.ozet(kullanici(F.direktor), { ekipId: F.ekipOsint });
+    expect(r.genel).toMatchObject({ toplam: 2, tamamlanan: 1, ortCozumSaat: 24 });
+    expect(r.blokSuresi).toEqual({ adet: 2, ortSaat: 4 });
   });
 
   it('Dev demo verisi rapora girer', async () => {

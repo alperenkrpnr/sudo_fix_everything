@@ -38,7 +38,8 @@ const BASLIKLAR = ['Toplam', 'Açık', 'Kapalı', 'Kapalı oranı', 'Ort. çöz�
 function SureKutusu({ baslik, s }: { baslik: string; s: SureOzeti | null }) {
   return (
     <div className="kart">
-      <strong>{baslik}</strong>: {s ? `${saat(s.ortSaat)} ort. (${s.adet} Task)` : <span className="soluk">veri yok</span>}
+      <strong>{baslik}</strong>:{' '}
+      {!s ? <span className="soluk">veri yok</span> : s.adet ? `${saat(s.ortSaat)} ort. (${s.adet} Task)` : <span className="soluk">yok (0 Task)</span>}
     </div>
   );
 }

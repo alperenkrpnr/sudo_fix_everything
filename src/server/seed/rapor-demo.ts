@@ -1,5 +1,6 @@
 // Rapor demo Task'ları (yalnızca `npm run dev`): farklı çözüm süreleri ve geciken işler.
-// Durum geçmişi (04) gelene kadar çözüm süresi = olusturma → guncelleme.
+// Kendi durum tarihçesini yazar (çözüm süresi = olusturma → TAMAMLANDI geçişi; bir blok aralığı).
+import type { TaskDurum } from '@prisma/client';
 import type { Db } from '../db/client';
 import { F } from './fixture';
 
@@ -15,7 +16,7 @@ export async function seedRaporDemo(db: Db, now: Date = new Date()): Promise<voi
     guncelleme: gun(kapanis),
     bitisTarihi: bitis === undefined ? null : gun(bitis),
   });
-  await db.task.createMany({
+  const tasks = await db.task.createManyAndReturn({
     data: [
       t('ModSecurity kural güncellemesi', F.waf1, F.ekipWaf, 'TAMAMLANDI', -14, -12),
       t('WAF bypass PoC değerlendirmesi', F.waf2, F.ekipWaf, 'TAMAMLANDI', -10, -9.5),
@@ -28,4 +29,18 @@ export async function seedRaporDemo(db: Db, now: Date = new Date()): Promise<voi
       t('Sosyal medya taraması (eski kampanya)', F.osint1, F.ekipOsint, 'IPTAL', -15, -10),
     ],
   });
+  const gecisler = tasks.flatMap((x) => {
+    const kim = x.assigneeKullaniciId!;
+    const g = (eski: TaskDurum, yeni: TaskDurum, zaman: Date, neden?: string) => ({ taskId: x.id, eski, yeni, zaman, kullaniciId: kim, neden });
+    const bas = new Date(x.olusturma.getTime() + 3_600_000);
+    if (x.durum === 'TAMAMLANDI') return [g('KABUL_EDILDI', 'DEVAM_EDIYOR', bas), g('DEVAM_EDIYOR', 'TAMAMLANDI', x.guncelleme)];
+    if (x.durum === 'IPTAL') return [g('KABUL_EDILDI', 'IPTAL', x.guncelleme)];
+    // Açık olanlar: bir süre bloklu kalıp devam etmiş
+    return [
+      g('KABUL_EDILDI', 'DEVAM_EDIYOR', bas),
+      g('DEVAM_EDIYOR', 'BLOKLU', new Date(bas.getTime() + 86_400_000), 'Erişim yetkisi bekleniyor'),
+      g('BLOKLU', 'DEVAM_EDIYOR', x.guncelleme),
+    ];
+  });
+  await db.taskDurumGecisi.createMany({ data: gecisler });
 }
