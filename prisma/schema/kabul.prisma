@@ -31,6 +31,8 @@ model KabulAdimi {
   baslangic        DateTime?
   kararZamani      DateTime?
   kararVerenId     String?
+  // Vekil kararı (ticket 09): "adinaKullaniciId adına kararVerenId tarafından".
+  adinaKullaniciId String?
   // Kararı veren tarafın Ekibi (ret raporu: hangi Ekip reddetti).
   kararVerenEkipId String?
   gerekce          String?

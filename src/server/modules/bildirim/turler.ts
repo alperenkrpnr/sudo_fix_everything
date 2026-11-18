@@ -10,6 +10,7 @@ export const BILDIRIM_TURLERI = [
   { tur: 'TERMIN_YAKLASIYOR', ad: 'Termin yaklaşıyor' },
   { tur: 'TERMIN_GECTI', ad: 'Termin geçti' },
   { tur: 'ESKALASYON', ad: 'Eskalasyon' },
+  { tur: 'VEKALET', ad: 'Vekil atandınız' },
   { tur: 'YETKINLIK_BITIS', ad: 'Sertifika bitişi' },
   { tur: 'ETKINLIK_DAVETI', ad: 'Etkinlik daveti' },
   { tur: 'DUYURU', ad: 'Yeni duyuru' },

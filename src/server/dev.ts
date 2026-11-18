@@ -12,6 +12,7 @@ import { seedTaskDurumDemo } from './seed/task-durum-demo';
 import { seedRaporDemo } from './seed/rapor-demo';
 import { seedEtkinlikDemo } from './seed/demo-etkinlik';
 import { seedKabulDemo } from './seed/kabul-demo';
+import { seedVekaletDemo } from './seed/vekalet-demo';
 import { seedDelegasyonDemo } from './seed/delegasyon-demo';
 import { seedAjanTokenDemo } from './seed/ajan-token-demo';
 import { writeFile } from 'node:fs/promises';
@@ -42,6 +43,8 @@ await seedEtkinlikDemo(services);
 await seedKabulDemo(services);
 await seedTaskDetayDemo(services);
 await seedDelegasyonDemo(services);
+// After seedKabulDemo: Vekalet demo + eskalasyonlariIsle (no scheduler; runs once on start).
+await seedVekaletDemo(services);
 // No scheduler: termin yaklaşma/geçme bildirimleri her dev başlangıcında işlenir (idempotent).
 await services.bildirim.terminBildirimleriniIsle();
 const app = express();

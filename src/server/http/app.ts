@@ -12,6 +12,7 @@ import { organizasyonRouter } from './organizasyon';
 import { kabulRouter } from './kabul';
 import { delegasyonRouter } from './delegasyon';
 import { dashboardRouter } from './dashboard';
+import { vekaletRouter } from './vekalet';
 import { ajanTokenRouter } from './ajan-token';
 
 const HTTP_KODU: Record<string, number> = { KIMLIK: 401, YETKI: 403, BULUNAMADI: 404, DOGRULAMA: 400 };
@@ -58,6 +59,7 @@ export function createApp(services: Services) {
   app.use('/api/kabul', kabulRouter(services));
   app.use('/api/kabul', delegasyonRouter(services));
   app.use('/api', dashboardRouter(services));
+  app.use('/api', vekaletRouter(services));
   app.use('/api/ajan-tokenlari', ajanTokenRouter(services));
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

@@ -45,4 +45,30 @@ describe('Bekleyen işlerim', () => {
     expect((await t.services.bekleyen.listele(kullanici(F.uhSavunma))).map((x) => x.id)).toEqual([pentestEkibine.id]);
     expect(await t.services.bekleyen.listele(kullanici(F.waf1))).toEqual([]);
   });
+
+  it('Vekil işleri ve eskale edilenler ayrı grupta görünür', async () => {
+    await t.services.vekalet.ata(kullanici(F.thCti), {
+      vekilId: F.uhSavunma,
+      baslangic: new Date('2026-03-02T00:00:00Z'),
+      bitis: new Date('2026-03-20T00:00:00Z'),
+    });
+    // SAVUNMA'ya gelen, uhSavunma'nın kendi onayı (Team Head'siz Ekip)
+    const kendi = await t.services.task.olustur(kullanici(F.cti1), { baslik: 'Pentest ekibine', assigneeEkipId: F.ekipPentest });
+    // thCti'nin onayı → uhSavunma Vekil
+    const vekil = await t.services.task.olustur(kullanici(F.waf1), { baslik: 'CTI ekibine', assigneeEkipId: F.ekipCti });
+    // TEAM-WAF'a gelen, thCoklu'nun onayı; 3 iş günü sonra uhSavunma'ya eskale
+    const eskale = await t.services.task.olustur(kullanici(F.cti2), { baslik: 'WAF ekibine', assigneeEkipId: F.ekipWaf });
+    t.now = new Date('2026-03-05T09:00:00Z');
+    await t.services.eskalasyon.eskalasyonlariIsle();
+
+    const liste = await t.services.bekleyen.listele(kullanici(F.uhSavunma));
+    const ozet = liste.map((x) => [x.id, x.grup, x.adinaKullaniciId ?? null]);
+    expect(ozet).toEqual(expect.arrayContaining([
+      [kendi.id, 'KENDI', null],
+      [vekil.id, 'VEKIL', F.thCti],
+      [eskale.id, 'ESKALASYON', null],
+    ]));
+    // kendi Pentest talebi de eskale edildi (Direktör'e); uhSavunma için KENDI kalır
+    expect(liste).toHaveLength(3);
+  });
 });
