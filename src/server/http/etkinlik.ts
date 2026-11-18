@@ -11,6 +11,8 @@ export function etkinlikRouter(services: Services) {
 
   r.get('/bildirim', h((_q, a) => services.bildirim.listele(a)));
   r.post('/bildirim/:id/okundu', h((q, a) => services.bildirim.okunduIsaretle(a, String(q.params.id)).then(() => ({ ok: true }))));
+  r.get('/bildirim/tercihler', h((_q, a) => services.bildirim.tercihler(a)));
+  r.put('/bildirim/tercihler/:tur', h((q, a) => services.bildirim.tercihGuncelle(a, String(q.params.tur), q.body?.acik)));
 
   r.get('/etkinlik', h((_q, a) => services.etkinlik.listele(a)));
   r.get('/etkinlik/bekleyen-davetler', h((_q, a) => services.etkinlik.bekleyenDavetler(a)));

@@ -13,6 +13,7 @@ import { yetkinlikServisi } from './modules/yetkinlik';
 import { kabulServisi } from './modules/kabul';
 import { bekleyenServisi } from './modules/bekleyen';
 import { raporServisi } from './modules/rapor';
+import { ajanTokenServisi } from './modules/ajan-token';
 
 export function createServices(opts: { db: Db; now?: () => Date; config?: Partial<Config> }) {
   const ctx: ServiceContext = {
@@ -33,6 +34,7 @@ export function createServices(opts: { db: Db; now?: () => Date; config?: Partia
     kabul: kabulServisi(ctx),
     bekleyen: bekleyenServisi(ctx),
     rapor: raporServisi(ctx),
+    ajanToken: ajanTokenServisi(ctx),
   };
 }
 
