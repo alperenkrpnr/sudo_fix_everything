@@ -93,6 +93,10 @@ describe('Accept / refuse', () => {
       ['KABUL', F.cti1, '2026-03-02T09:00:00.000Z', '2026-03-02T11:00:00.000Z'],
       ['KABUL', F.thCti, '2026-03-02T11:00:00.000Z', '2026-03-02T15:00:00.000Z'],
     ]);
+    const gecmis = await t.services.task.durumGecmisi(kullanici(F.waf1), task.id);
+    expect(gecmis.gecisler.map((g) => [g.eski, g.yeni, g.zaman.toISOString(), g.kullaniciId])).toEqual([
+      ['KABUL_BEKLIYOR', 'KABUL_EDILDI', '2026-03-02T15:00:00.000Z', F.thCti],
+    ]);
   });
 
   it('ret gerekçesi zorunlu; herhangi bir halka reddederse Task Reddedildi olur, silinmez ve zincir baştan başlamaz', async () => {
@@ -106,6 +110,8 @@ describe('Accept / refuse', () => {
     expect(await t.services.kabul.bekleyenler(kullanici(F.cti1))).toEqual([]);
     expect(await t.services.kabul.bekleyenler(kullanici(F.thCti))).toEqual([]);
     expect(await bildirimTurleri(F.waf1, task.id)).toContain('TASK_RET');
+    const gecmis = await t.services.task.durumGecmisi(kullanici(F.waf1), task.id);
+    expect(gecmis.gecisler.map((g) => [g.eski, g.yeni, g.neden])).toEqual([['KABUL_BEKLIYOR', 'REDDEDILDI', 'Ekip kapasitesi dolu']]);
 
     const z = await t.services.kabul.zincir(kullanici(F.waf1), task.id);
     expect(z.adimlar[1]).toMatchObject({

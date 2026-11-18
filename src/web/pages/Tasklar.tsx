@@ -50,6 +50,7 @@ export function TasklarSayfasi({ ben }: { ben: Profil }) {
       ))}
       {t.hariciRef && <span className="etiket">{t.hariciRef}</span>}
       {t.durum === 'TASLAK' && t.requesterId === ben.id && <button onClick={() => gonder(t.id)}>Gönder</button>}
+      <DurumKontrolleri task={t} onDegisti={() => { setHata(null); yukle(); }} onHata={setHata} />
       <KabulKontrolleri task={t} ben={ben} rehber={rehber} onDegisti={() => { setHata(null); yukle(); }} onHata={setHata} />
     </div>
   );
@@ -100,6 +101,52 @@ export function TasklarSayfasi({ ben }: { ben: Profil }) {
         </table>
       )}
     </>
+  );
+}
+
+/** Durum geçiş düğmeleri (ticket 04). Yetki ve geçerlilik sunucuda; burada yalnızca olası hedefler. */
+const SONRAKI: Partial<Record<TaskDurum, TaskDurum[]>> = {
+  TASLAK: ['IPTAL'],
+  KABUL_BEKLIYOR: ['IPTAL'],
+  KABUL_EDILDI: ['DEVAM_EDIYOR', 'BLOKLU', 'TAMAMLANDI', 'IPTAL'],
+  DEVAM_EDIYOR: ['BLOKLU', 'TAMAMLANDI', 'IPTAL'],
+  BLOKLU: ['DEVAM_EDIYOR', 'TAMAMLANDI', 'IPTAL'],
+  TAMAMLANDI: ['DEVAM_EDIYOR'],
+};
+
+function DurumKontrolleri(p: { task: TaskGorunumu; onDegisti: () => void; onHata: (m: string) => void }) {
+  const [gecmis, setGecmis] = useState<{ gecisler: Array<{ id: string; eski: TaskDurum | null; yeni: TaskDurum; zaman: string; neden: string | null }>; blokSuresiMs: number } | null>(null);
+  const degistir = (durum: TaskDurum) => {
+    let neden: string | null = null;
+    if (durum === 'BLOKLU') {
+      neden = window.prompt('Bloklu nedeni (zorunlu):');
+      if (!neden?.trim()) return;
+    }
+    api(`/tasks/${p.task.id}/durum`, { body: { durum, neden } }).then(p.onDegisti).catch((e) => p.onHata(e.message));
+  };
+  const gecmisAc = () =>
+    gecmis ? setGecmis(null) : api<typeof gecmis>(`/tasks/${p.task.id}/gecmis`).then(setGecmis).catch((e) => p.onHata(e.message));
+  return (
+    <div className="arac">
+      {(SONRAKI[p.task.durum] ?? []).map((d) => (
+        <button key={d} onClick={() => degistir(d)}>
+          {p.task.durum === 'TAMAMLANDI' ? 'Yeniden aç' : `→ ${durumAdi(d)}`}
+        </button>
+      ))}
+      <button onClick={gecmisAc}>Tarihçe</button>
+      {gecmis && (
+        <div className="soluk">
+          {gecmis.gecisler.length === 0 && <div>Durum değişikliği yok</div>}
+          {gecmis.gecisler.map((g) => (
+            <div key={g.id}>
+              {new Date(g.zaman).toLocaleString('tr-TR')}: {g.eski ? durumAdi(g.eski) : '—'} → {durumAdi(g.yeni)}
+              {g.neden ? ` (${g.neden})` : ''}
+            </div>
+          ))}
+          {gecmis.blokSuresiMs > 0 && <div>Blok süresi: {(gecmis.blokSuresiMs / 3_600_000).toFixed(1)} saat</div>}
+        </div>
+      )}
+    </div>
   );
 }
 

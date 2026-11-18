@@ -7,6 +7,7 @@ import type { ServiceContext } from '../../core/context';
 import { BulunamadiHatasi, DogrulamaHatasi, YetkiHatasi } from '../../core/errors';
 import type { Tx } from '../../db/client';
 import { bildirimGonder } from '../bildirim';
+import { durumGecisiKaydet } from '../task/durum';
 import {
   adimOnaylayicilari,
   kabulZinciriPlani,
@@ -173,6 +174,7 @@ export function kabulServisi(ctx: ServiceContext) {
           });
         } else {
           guncel = await tx.task.update({ where: { id: taskId }, data: { durum: 'KABUL_EDILDI', guncelleme: t } });
+          await durumGecisiKaydet(tx, { taskId, eski: 'KABUL_BEKLIYOR', yeni: 'KABUL_EDILDI', zaman: t, kullaniciId: kimlik.kullaniciId });
         }
         await bildirimGonder(tx, { ...bildirim, kullaniciIds: [task.requesterId], tur: 'TASK_KABUL', mesaj: `${kimlik.ad} Task'ı kabul etti: ${task.baslik}` });
         return {
@@ -194,6 +196,7 @@ export function kabulServisi(ctx: ServiceContext) {
           data: { karar: 'RET', gerekce: g, kararZamani: t, kararVerenId: kimlik.kullaniciId, kararVerenEkipId: await kararVerenEkibi(tx, adim, task, kimlik.kullaniciId, t) },
         });
         const guncel = await tx.task.update({ where: { id: taskId }, data: { durum: 'REDDEDILDI', guncelleme: t } });
+        await durumGecisiKaydet(tx, { taskId, eski: 'KABUL_BEKLIYOR', yeni: 'REDDEDILDI', zaman: t, kullaniciId: kimlik.kullaniciId, neden: g });
         await bildirimGonder(tx, {
           kullaniciIds: [task.requesterId],
           tur: 'TASK_RET',
@@ -252,6 +255,7 @@ export function kabulServisi(ctx: ServiceContext) {
           },
         });
         await zincirBaslat(tx, task, plan, t);
+        await durumGecisiKaydet(tx, { taskId, eski: 'REDDEDILDI', yeni: task.durum, zaman: t, kullaniciId: kimlik.kullaniciId, neden: 'Yeniden atama' });
         return {
           sonuc: task,
           denetim: { varlikTuru: 'Task', varlikId: taskId, veri: { assigneeKullaniciId: task.assigneeKullaniciId, assigneeEkipId: task.assigneeEkipId, durum: task.durum } },
@@ -264,6 +268,7 @@ export function kabulServisi(ctx: ServiceContext) {
       return yaz(ctx, actor, 'kabul.iptalEt', async (kimlik, tx) => {
         await reddedilmisTask(tx, kimlik.kullaniciId, kimlik.zaman, taskId);
         const task = await tx.task.update({ where: { id: taskId }, data: { durum: 'IPTAL', guncelleme: kimlik.zaman } });
+        await durumGecisiKaydet(tx, { taskId, eski: 'REDDEDILDI', yeni: 'IPTAL', zaman: kimlik.zaman, kullaniciId: kimlik.kullaniciId });
         return { sonuc: task, denetim: { varlikTuru: 'Task', varlikId: taskId, veri: { durum: 'IPTAL' } } };
       });
     },

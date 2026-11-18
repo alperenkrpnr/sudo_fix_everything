@@ -1,0 +1,18 @@
+// Task durum tarihçesi (ticket 04). Ekleme-tabanlı: her durum değişikliği bir satır.
+// Raporlar (çözüm süresi, blok süresi, kabul bekleme) bu tablodan hesaplanır.
+// taskId / kullaniciId düz String (relation yok; bütünlük servis katmanında).
+
+model TaskDurumGecisi {
+  id          String     @id @default(cuid())
+  taskId      String
+  // null: ilk durum (oluşturma anı); şimdilik yalnızca durum değişiklikleri yazılır.
+  eski        TaskDurum?
+  yeni        TaskDurum
+  zaman       DateTime
+  // İşlemi yapan kullanıcı (aktör).
+  kullaniciId String
+  // Bloklu için zorunlu; diğer geçişlerde isteğe bağlı açıklama.
+  neden       String?
+
+  @@index([taskId, zaman])
+}
