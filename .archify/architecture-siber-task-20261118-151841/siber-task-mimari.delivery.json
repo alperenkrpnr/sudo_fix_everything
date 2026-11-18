@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "251c003c-9799-4ff8-8dab-6f7943f98b24",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/TCANBAS/Desktop/AI_Hackathon/.archify/architecture-siber-task-20261118-151841/candidate.json",
+  "output": "/Users/TCANBAS/Desktop/AI_Hackathon/.archify/architecture-siber-task-20261118-151841/siber-task-mimari.html",
+  "specification": {
+    "sha256": "16b9d0328dc1d1359d290b26ddda67d27aae6609c7597f9abceb8cc1d4fbfd7d",
+    "bytes": 17152
+  },
+  "artifact": {
+    "sha256": "5b72256734514934d92195339c26316bc6dd7a75cd070b5311c56738d2bb9b9f",
+    "bytes": 873061
+  }
+}
