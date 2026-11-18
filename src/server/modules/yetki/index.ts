@@ -9,6 +9,7 @@ import { denetimeEkle, type DenetimGirdisi } from '../denetim/kaydet';
 import { roller, type Rol } from './cozumleme';
 
 export * from './cozumleme';
+export * from './task';
 
 /** Resolved caller identity, handed to the operation body. */
 export interface Kimlik {

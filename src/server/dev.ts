@@ -7,6 +7,7 @@ import { createDb } from './db/client';
 import { ROOT, adminQuery, applySchema, createDatabase, startPostgres } from './db/postgres';
 import { createApp } from './http/app';
 import { seedFixture } from './seed/fixture';
+import { seedTaskDemo } from './seed/task-demo';
 import { createServices } from './services';
 
 const DB_NAME = 'siber_task';
@@ -20,6 +21,7 @@ await createDatabase(pg.url('postgres'), DB_NAME);
 await applySchema(pg.url(DB_NAME));
 const db = createDb(pg.url(DB_NAME));
 await seedFixture(db);
+await seedTaskDemo(db);
 
 const services = createServices({ db });
 const app = express();

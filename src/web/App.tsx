@@ -3,11 +3,13 @@ import { api, getToken, setToken } from './api';
 import { rolAdi } from './format';
 import { GirisSayfasi } from './pages/Giris';
 import { OrganizasyonSayfasi } from './pages/Organizasyon';
+import { TasklarSayfasi } from './pages/Tasklar';
 import type { Profil } from './types';
 
 /** Sayfa kaydı: yeni modül sayfası = bir satır. */
 const SAYFALAR: Array<{ id: string; baslik: string; bilesen: ComponentType<{ ben: Profil }> }> = [
   { id: 'organizasyon', baslik: 'Organizasyon', bilesen: OrganizasyonSayfasi },
+  { id: 'tasklar', baslik: "Task'lar", bilesen: TasklarSayfasi },
 ];
 
 

@@ -31,6 +31,21 @@ describe('web adaptörü', () => {
     expect(yapi.unitler.flatMap((u: any) => u.ekipler).find((e: any) => e.kod === 'TEAM-SOC').uyeler).toBeNull();
   });
 
+  it('Task oluşturma ve listeleme servis katmanına yönlenir', async () => {
+    const auth = { authorization: `Bearer mock:${F.waf1}`, 'content-type': 'application/json' };
+    const res = await fetch(`${base}/api/tasks`, {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ baslik: 'API task', assigneeKullaniciId: F.cti1, bitisTarihi: '2026-03-20' }),
+    });
+    expect(res.status).toBe(200);
+    const task = await res.json();
+    expect(task).toMatchObject({ durum: 'KABUL_BEKLIYOR', bitisTarihi: '2026-03-20T00:00:00.000Z' });
+    const liste = await (await fetch(`${base}/api/tasks`, { headers: { authorization: `Bearer mock:${F.cti1}` } })).json();
+    expect(liste.map((x: any) => x.id)).toContain(task.id);
+    expect((await fetch(`${base}/api/tasks/${task.id}`, { headers: { authorization: `Bearer mock:${F.soc1}` } })).status).toBe(404);
+  });
+
   it('token olmadan 401, yetkisiz işlemde 403 döner', async () => {
     expect((await fetch(`${base}/api/organizasyon`)).status).toBe(401);
     const res = await fetch(`${base}/api/denetim`, { headers: { authorization: `Bearer mock:${F.waf1}` } });

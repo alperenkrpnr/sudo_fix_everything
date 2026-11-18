@@ -10,3 +10,12 @@ main { padding: 16px; max-width: 1100px; margin: 0 auto; }
 .soluk { color: #6b7280; font-size: 13px; }
 .hata { color: #b91c1c; }
 ul { margin: 4px 0; padding-left: 18px; }
+/* Task'lar (03) */
+.arac { display: flex; gap: 8px; margin-bottom: 12px; }
+.pano { display: grid; grid-template-columns: repeat(8, minmax(170px, 1fr)); gap: 8px; overflow-x: auto; }
+.sutun { background: #eceff3; border-radius: 6px; padding: 6px; min-height: 120px; }
+.sutun h4 { margin: 4px 0 8px; font-size: 13px; }
+.gecikti { border-color: #dc2626 !important; background: #fef2f2; }
+table.liste { width: 100%; border-collapse: collapse; background: #fff; }
+table.liste th, table.liste td { border-bottom: 1px solid #dde1e7; padding: 6px; text-align: left; font-size: 14px; }
+form.form { display: grid; gap: 8px; max-width: 520px; }

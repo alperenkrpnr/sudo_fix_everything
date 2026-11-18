@@ -5,6 +5,7 @@ import type { Db } from './db/client';
 import { denetimServisi } from './modules/denetim';
 import { organizasyonServisi } from './modules/organizasyon';
 import { oturumServisi } from './modules/oturum';
+import { taskServisi } from './modules/task';
 
 export function createServices(opts: { db: Db; now?: () => Date; config?: Partial<Config> }) {
   const ctx: ServiceContext = {
@@ -17,6 +18,7 @@ export function createServices(opts: { db: Db; now?: () => Date; config?: Partia
     organizasyon: organizasyonServisi(ctx),
     oturum: oturumServisi(ctx),
     denetim: denetimServisi(ctx),
+    task: taskServisi(ctx),
   };
 }
 

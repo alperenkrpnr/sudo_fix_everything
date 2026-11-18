@@ -1,0 +1,46 @@
+// Task modülü. Kullanici/Ekip referansları düz String id'dir (relation yok; bütünlük servis katmanında).
+// Durum makinesi geçişleri ticket 04'te, kabul zinciri ticket 05'te eklenir.
+
+enum TaskDurum {
+  TASLAK
+  KABUL_BEKLIYOR
+  KABUL_EDILDI
+  DEVAM_EDIYOR
+  BLOKLU
+  TAMAMLANDI
+  REDDEDILDI
+  IPTAL
+}
+
+enum TaskOncelik {
+  DUSUK
+  ORTA
+  YUKSEK
+  KRITIK
+}
+
+model Task {
+  id                  String      @id @default(cuid())
+  baslik              String
+  aciklama            String?
+  oncelik             TaskOncelik @default(ORTA)
+  // null = Backlog (tarihsiz Task'ların görünümü; durum değildir).
+  bitisTarihi         DateTime?
+  etiketler           String[]    @default([])
+  // İsteğe bağlı harici ticket referansı (link/ID).
+  hariciRef           String?
+  requesterId         String
+  // Assignee: tam olarak biri dolu (tek kişi veya tek Ekip).
+  assigneeKullaniciId String?
+  assigneeEkipId      String?
+  // Task'ın Ekibi: Ekip'e atandıysa o Ekip, kişiye atandıysa Assignee'nin Ekibi.
+  ekipId              String?
+  durum               TaskDurum
+  olusturma           DateTime
+  guncelleme          DateTime
+
+  @@index([requesterId])
+  @@index([assigneeKullaniciId])
+  @@index([assigneeEkipId])
+  @@index([ekipId])
+}
