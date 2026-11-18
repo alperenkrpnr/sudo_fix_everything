@@ -10,6 +10,7 @@ import { bildirimServisi } from './modules/bildirim';
 import { etkinlikServisi } from './modules/etkinlik';
 import { duyuruServisi } from './modules/duyuru';
 import { yetkinlikServisi } from './modules/yetkinlik';
+import { kabulServisi } from './modules/kabul';
 
 export function createServices(opts: { db: Db; now?: () => Date; config?: Partial<Config> }) {
   const ctx: ServiceContext = {
@@ -27,6 +28,7 @@ export function createServices(opts: { db: Db; now?: () => Date; config?: Partia
     etkinlik: etkinlikServisi(ctx),
     duyuru: duyuruServisi(ctx),
     yetkinlik: yetkinlikServisi(ctx),
+    kabul: kabulServisi(ctx),
   };
 }
 

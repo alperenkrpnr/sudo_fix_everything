@@ -1,11 +1,12 @@
 // Task modülü: oluşturma, listeleme, görüntüleme, alan güncelleme.
-// Kabul kararı `yetki/task.ts#direktKabulMu`, görünürlük `yetki/task.ts#taskGorunurluk` içindedir.
+// Kabul zinciri `modules/kabul` (kurallar `yetki/kabul.ts`), görünürlük `yetki/task.ts#taskGorunurluk` içindedir.
 import type { Task, TaskDurum, TaskOncelik } from '@prisma/client';
 import type { Actor } from '../../core/actor';
 import type { ServiceContext } from '../../core/context';
 import { BulunamadiHatasi, DogrulamaHatasi, YetkiHatasi } from '../../core/errors';
 import type { Tx } from '../../db/client';
-import { aktif, direktKabulMu, oku, taskGorunurluk, uyeOlduguEkipler, yaz, type TaskAtamaHedefi } from '../yetki';
+import { atamaPlani, zincirBaslat } from '../kabul';
+import { aktif, oku, taskGorunurluk, uyeOlduguEkipler, yaz, type TaskAtamaHedefi } from '../yetki';
 
 export type { TaskDurum, TaskOncelik };
 export type TaskGorunumu = Task;
@@ -31,9 +32,12 @@ export interface Rehber {
   kullanicilar: Array<{ id: string; ad: string; unvan: string | null; ekipler: Array<{ id: string; kod: string }> }>;
 }
 
-/** Atama sonrası durum. Kabul zinciri (ticket 05) burada devreye girer. */
-async function atamaDurumu(tx: Tx, requesterId: string, hedef: TaskAtamaHedefi, t: Date): Promise<TaskDurum> {
-  return (await direktKabulMu(tx, requesterId, hedef, t)) ? 'KABUL_EDILDI' : 'KABUL_BEKLIYOR';
+/** Atama: durumu kabul zincirine göre belirler, Task'ı yazar (`yaz`), zinciri kaydeder (ticket 05). */
+async function atamaYap(tx: Tx, requesterId: string, hedef: TaskAtamaHedefi, t: Date, yaz: (durum: TaskDurum) => Promise<Task>): Promise<Task> {
+  const plan = await atamaPlani(tx, requesterId, hedef, t);
+  const task = await yaz(plan.durum);
+  await zincirBaslat(tx, task, plan, t);
+  return task;
 }
 
 async function hedefCoz(tx: Tx, requesterId: string, g: TaskGirdisi, t: Date): Promise<{ hedef: TaskAtamaHedefi; ekipId: string | null }> {
@@ -58,8 +62,7 @@ export function taskServisi(ctx: ServiceContext) {
         const baslik = g.baslik?.trim();
         if (!baslik) throw new DogrulamaHatasi('Başlık zorunlu');
         const { hedef, ekipId } = await hedefCoz(tx, kimlik.kullaniciId, g, kimlik.zaman);
-        const durum = g.taslak ? 'TASLAK' : await atamaDurumu(tx, kimlik.kullaniciId, hedef, kimlik.zaman);
-        const task = await tx.task.create({
+        const olustur = (durum: TaskDurum) => tx.task.create({
           data: {
             baslik,
             aciklama: g.aciklama ?? null,
@@ -76,6 +79,7 @@ export function taskServisi(ctx: ServiceContext) {
             guncelleme: kimlik.zaman,
           },
         });
+        const task = g.taslak ? await olustur('TASLAK') : await atamaYap(tx, kimlik.kullaniciId, hedef, kimlik.zaman, olustur);
         return { sonuc: task, denetim: atamaDenetimi(task) };
       });
     },
@@ -97,10 +101,9 @@ export function taskServisi(ctx: ServiceContext) {
         const hedef: TaskAtamaHedefi = mevcut.assigneeEkipId
           ? { ekipId: mevcut.assigneeEkipId }
           : { kullaniciId: mevcut.assigneeKullaniciId! };
-        const task = await tx.task.update({
-          where: { id },
-          data: { durum: await atamaDurumu(tx, kimlik.kullaniciId, hedef, kimlik.zaman), guncelleme: kimlik.zaman },
-        });
+        const task = await atamaYap(tx, kimlik.kullaniciId, hedef, kimlik.zaman, (durum) =>
+          tx.task.update({ where: { id }, data: { durum, guncelleme: kimlik.zaman } }),
+        );
         return { sonuc: task, denetim: atamaDenetimi(task) };
       });
     },

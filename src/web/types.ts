@@ -9,3 +9,9 @@ export type TaskGorunumu = Omit<TaskSunucu, 'bitisTarihi' | 'olusturma' | 'gunce
   olusturma: string;
   guncelleme: string;
 };
+
+import type { KabulAdimGorunumu as KabulAdimSunucu } from '../server/modules/kabul';
+export type KabulAdimGorunumu = Omit<KabulAdimSunucu, 'baslangic' | 'kararZamani'> & { baslangic: string | null; kararZamani: string | null };
+export interface KabulZinciri {
+  adimlar: KabulAdimGorunumu[];
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { KabulKontrolleri } from './KabulKontrolleri';
 import type { Profil, Rehber, TaskDurum, TaskGorunumu, TaskOncelik } from '../types';
 
 const DURUMLAR: Array<[TaskDurum, string]> = [
@@ -49,6 +50,7 @@ export function TasklarSayfasi({ ben }: { ben: Profil }) {
       ))}
       {t.hariciRef && <span className="etiket">{t.hariciRef}</span>}
       {t.durum === 'TASLAK' && t.requesterId === ben.id && <button onClick={() => gonder(t.id)}>Gönder</button>}
+      <KabulKontrolleri task={t} ben={ben} rehber={rehber} onDegisti={() => { setHata(null); yukle(); }} onHata={setHata} />
     </div>
   );
 

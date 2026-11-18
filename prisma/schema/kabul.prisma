@@ -1,0 +1,42 @@
+// Kabul zinciri (ticket 05). Her atama denemesi (`deneme`) sıralı adımlar üretir.
+// Referanslar düz String id'dir (relation yok; bütünlük servis katmanında).
+
+enum KabulAdimTuru {
+  // Onaylayıcı Task'ın Assignee'si (kişi).
+  ASSIGNEE
+  // Onaylayıcı, Assignee Ekibinin (veya Assignee Çalışanın o anki Ekibinin) Sorumlu yöneticisi; karar anında çözülür.
+  SORUMLU
+  // Direkt kabul / Self-assign kaydı (onay gerekmedi; karar = OTOMATIK).
+  DIREKT
+}
+
+enum KabulKarar {
+  BEKLIYOR
+  KABUL
+  RET
+  OTOMATIK
+}
+
+model KabulAdimi {
+  id               String        @id @default(cuid())
+  taskId           String
+  // Aynı Task'ın kaçıncı atama denemesi (yeniden atamada artar). Eski denemeler tarihçe olarak kalır.
+  deneme           Int
+  sira             Int
+  tur              KabulAdimTuru
+  karar            KabulKarar    @default(BEKLIYOR)
+  requesterId      String
+  requesterEkipId  String?
+  // Adım ne zaman karar beklemeye başladı (önceki adım kabul edilince dolar; null = henüz sırası gelmedi).
+  baslangic        DateTime?
+  kararZamani      DateTime?
+  kararVerenId     String?
+  // Kararı veren tarafın Ekibi (ret raporu: hangi Ekip reddetti).
+  kararVerenEkipId String?
+  gerekce          String?
+  // DIREKT adımda neden: SELF_ASSIGN | UST_YONETICI | SORUMLU_YONETICI | REQUESTER_VE_ONAYLAYICI
+  not              String?
+
+  @@index([taskId])
+  @@index([karar])
+}

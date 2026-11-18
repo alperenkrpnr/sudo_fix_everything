@@ -1,24 +1,9 @@
-// Task yetki kuralları (ADR-0001): atama kabul kararı ve görünürlük yalnızca burada yaşar.
+// Task yetki kuralları (ADR-0001): görünürlük. Kabul zinciri kuralları `./kabul.ts` içindedir.
 import type { Prisma } from '@prisma/client';
 import type { Tx } from '../../db/client';
-import { aktif, ustYoneticiler, uyeOlduguEkipler, yonetimKapsami } from './cozumleme';
+import { aktif, uyeOlduguEkipler, yonetimKapsami } from './cozumleme';
 
 export type TaskAtamaHedefi = { kullaniciId: string } | { ekipId: string };
-
-/**
- * KABUL SEAM'İ: atama direkt kabul mü, yoksa accept/refuse mu gerektirir?
- * Direkt kabul: Self-assign; Requester, Assignee'nin Üst yöneticisi ise (Team Head → kendi Çalışanı,
- * Unit Head → kendi Unit'i, Direktör → herkes); Ekip'e atamada Requester o Ekibi yönetiyorsa.
- * Ticket 05 bunu tam kabul zinciriyle değiştirir (false → zincir üretilir).
- */
-export async function direktKabulMu(tx: Tx, requesterId: string, hedef: TaskAtamaHedefi, t: Date): Promise<boolean> {
-  if ('ekipId' in hedef) {
-    const kapsam = await yonetimKapsami(tx, requesterId, t);
-    return kapsam.tumu || kapsam.ekipIds.includes(hedef.ekipId);
-  }
-  if (hedef.kullaniciId === requesterId) return true; // Self-assign
-  return (await ustYoneticiler(tx, hedef.kullaniciId, t)).includes(requesterId);
-}
 
 /**
  * Görünürlük: kullanıcının görebildiği Task'lar için Prisma `where` filtresi.

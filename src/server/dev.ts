@@ -9,6 +9,7 @@ import { createApp } from './http/app';
 import { seedFixture } from './seed/fixture';
 import { seedTaskDemo } from './seed/task-demo';
 import { seedEtkinlikDemo } from './seed/demo-etkinlik';
+import { seedKabulDemo } from './seed/kabul-demo';
 import { createServices } from './services';
 
 const DB_NAME = 'siber_task';
@@ -26,6 +27,7 @@ await seedTaskDemo(db);
 
 const services = createServices({ db });
 await seedEtkinlikDemo(services);
+await seedKabulDemo(services);
 const app = express();
 app.use(createApp(services));
 const vite = await createViteServer({ configFile: path.join(ROOT, 'vite.config.ts'), server: { middlewareMode: true } });
