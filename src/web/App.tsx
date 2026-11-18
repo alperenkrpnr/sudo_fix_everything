@@ -12,6 +12,7 @@ import { TaskPanosuSayfasi } from './pages/TaskPanosu';
 import { EtkinlikSayfasi } from './pages/Etkinlik';
 import { RaporSayfasi } from './pages/Rapor';
 import { OrganizasyonSayfasi } from './pages/Organizasyon';
+import { EntegrasyonSayfasi } from './pages/Entegrasyon';
 import logo from './assets/logo.png';
 import type { MockKullanici, Profil, TaskGorunumu } from './types';
 
@@ -23,6 +24,7 @@ const SAYFALAR: Array<{ id: string; baslik: string; bilesen: ComponentType; yone
   { id: 'gorevler', baslik: 'Task panosu', bilesen: TaskPanosuSayfasi },
   { id: 'etkinlikler', baslik: 'Etkinlik & yetkinlik', bilesen: EtkinlikSayfasi },
   { id: 'raporlar', baslik: 'Raporlar', bilesen: RaporSayfasi },
+  { id: 'entegrasyon', baslik: 'API & MCP', bilesen: EntegrasyonSayfasi },
   { id: 'organizasyon', baslik: 'Organizasyon', bilesen: OrganizasyonSayfasi, yonetim: true },
 ];
 

@@ -9,23 +9,49 @@ import { TaskSatiri } from './GenelBakis';
 import type { RaporOzeti } from '../types';
 
 const yuzde = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+const ekipYolu = (ekipId: string, baslangic: string) => `/rapor?ekipId=${ekipId}${baslangic ? `&baslangic=${baslangic}` : ''}`;
+
+/** "Son N gün" → YYYY-MM-DD (UTC gün; bitiş = bugün dahil). Boş = tüm zamanlar. */
+function aralikBaslangici(gun: string): string {
+  if (!gun) return '';
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - Number(gun) + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function AralikSecimi({ deger, onDegis }: { deger: string; onDegis: (v: string) => void }) {
+  return (
+    <div className="field">
+      <label htmlFor="r-aralik">Tarih aralığı (oluşturma)</label>
+      <select id="r-aralik" value={deger} onChange={(e) => onDegis(e.target.value)}>
+        <option value="">Tüm zamanlar</option>
+        <option value="7">Son 7 gün</option>
+        <option value="30">Son 30 gün</option>
+        <option value="90">Son 90 gün</option>
+      </select>
+    </div>
+  );
+}
 
 export function RaporSayfasi() {
   const u = useUygulama();
   const [filtre, setFiltre] = useState({ unitId: '', ekipId: '' });
-  const q = new URLSearchParams(Object.entries(filtre).filter(([, v]) => v)).toString();
+  const [aralik, setAralik] = useState('');
+  const baslangic = aralikBaslangici(aralik);
+  const q = new URLSearchParams(Object.entries({ ...filtre, baslangic }).filter(([, v]) => v)).toString();
   const rapor = useVeri<RaporOzeti>(`/rapor${q ? `?${q}` : ''}`);
   const r = rapor.veri;
-  const ekipYollari = (r?.ekipler ?? []).map((e) => `/rapor?ekipId=${e.ekipId}`);
+  const ekipYollari = (r?.ekipler ?? []).map((e) => ekipYolu(e.ekipId, baslangic));
   const ekipRaporlari = useCokluVeri<RaporOzeti>(ekipYollari);
 
   const unitler = (u.org?.unitler ?? []).filter((x) => x.yonetebilir);
   const ekipSecenekleri = (u.org?.unitler ?? []).filter((x) => !filtre.unitId || x.id === filtre.unitId).flatMap((x) => x.ekipler).filter((e) => e.yonetebilir);
-  const yonetici = !!r && r.kapsam !== 'KENDI';
+  const yonetici = r ? r.kapsam !== 'KENDI' : u.yonetici;
 
-  const filtreler = yonetici && (
+  const filtreler = (
     <div className="filters-bar">
-      {unitler.length > 1 && (
+      <AralikSecimi deger={aralik} onDegis={setAralik} />
+      {yonetici && unitler.length > 1 && (
         <div className="field">
           <label htmlFor="r-unit">Unit</label>
           <select id="r-unit" value={filtre.unitId} onChange={(e) => setFiltre({ unitId: e.target.value, ekipId: '' })}>
@@ -38,7 +64,7 @@ export function RaporSayfasi() {
           </select>
         </div>
       )}
-      <div className="field">
+      {yonetici && <div className="field">
         <label htmlFor="r-ekip">Ekip</label>
         <select id="r-ekip" value={filtre.ekipId} onChange={(e) => setFiltre({ ...filtre, ekipId: e.target.value })}>
           <option value="">Tümü</option>
@@ -48,7 +74,7 @@ export function RaporSayfasi() {
             </option>
           ))}
         </select>
-      </div>
+      </div>}
       <span className="hint" style={{ alignSelf: 'center' }}>
         Taslaklar hariç. Kapalı = Tamamlandı, İptal, Reddedildi.
       </span>
@@ -75,6 +101,7 @@ export function RaporSayfasi() {
         <div className="head-row">
           <p className="sub">Size atanan Task'lardan hesaplanır. Ekip ve kişi karşılaştırmaları yalnızca yöneticilere açıktır.</p>
         </div>
+        {filtreler}
         <section className="tiles simple">
           <div className="tile">
             <span className="lbl">Tamamladığım Task</span>
@@ -114,7 +141,7 @@ export function RaporSayfasi() {
   const ekipler = r.ekipler ?? [];
   const maxToplam = Math.max(1, ...ekipler.map((e) => e.toplam));
   const bekleme = ekipler.map((e) => {
-    const x = ekipRaporlari[`/rapor?ekipId=${e.ekipId}`];
+    const x = ekipRaporlari[ekipYolu(e.ekipId, baslangic)];
     return { e, kabul: x?.kabulBekleme?.ortSaat ?? 0, blok: x?.blokSuresi.ortSaat ?? 0, yuklendi: !!x };
   });
   const maxBekleme = Math.max(1, ...bekleme.map((b) => b.kabul + b.blok));
@@ -131,7 +158,7 @@ export function RaporSayfasi() {
   return (
     <>
       <div className="head-row">
-        <p className="sub">{kapsamMetni} · Kapsam, bugünkü organizasyon yapısına ve Task'ın Ekibine göre hesaplanır.</p>
+        <p className="sub">{kapsamMetni} · Task'ın Ekibi atama anındaki yapıya göre sayılır; taşınan Çalışanın geçmiş işleri eski Ekibinde kalır.</p>
       </div>
       {filtreler}
       <section className="tiles simple">

@@ -298,6 +298,17 @@ details.fold[open] summary{margin-bottom:10px}
 .warn-chip{font-size:12px;font-weight:600;color:var(--gold);background:var(--gold-soft);border:1px solid rgba(245,197,24,.35);padding:2px 9px;border-radius:999px;white-space:nowrap}
 .team-actions{display:flex;flex-direction:column;gap:6px;align-items:stretch}
 
+/* ---- integration ---- */
+pre.code{margin:0;padding:14px 16px;border-radius:10px;background:var(--side);border:1px solid var(--line);font-family:var(--f-mono);font-size:13px;overflow-x:auto;line-height:1.6;color:#C9D6EA}
+.ep{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line-soft);font-size:14px}
+.ep:first-child{border-top:0}
+.method{font-family:var(--f-mono);font-size:11.5px;font-weight:700;padding:2px 6px;border-radius:6px;text-align:center;border:1px solid}
+.method.get{color:var(--ok);background:var(--ok-soft);border-color:rgba(52,211,153,.35)} .method.post{color:#7FA5FF;background:var(--med-soft);border-color:rgba(74,125,247,.4)}
+.ep code{font-family:var(--f-mono);font-size:13px;word-break:break-all}
+.tool{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line-soft);font-size:14px;flex-wrap:wrap}
+.tool:first-child{border-top:0}
+.tool code{font-family:var(--f-mono);font-weight:600;color:var(--gold)}
+
 /* ---- notifications ---- */
 .notif{display:grid;grid-template-columns:8px minmax(0,1fr);gap:12px;padding:12px 4px;border:0;border-top:1px solid var(--line-soft);font-size:14px;background:none;text-align:left;width:100%}
 .notif:first-child{border-top:0}
@@ -306,6 +317,8 @@ details.fold[open] summary{margin-bottom:10px}
 .notif.unread .nd{background:var(--gold)}
 .notif:not(.unread){color:var(--muted)}
 .notif time{font-family:var(--f-mono);font-size:12px;color:var(--faint);display:block}
+.prefs td{padding:8px 10px}
+.prefs input{accent-color:var(--accent-btn);width:17px;height:17px}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:40;background:var(--raised);border:1px solid #34466D;color:var(--fg);padding:11px 16px;border-radius:10px;font-weight:600;box-shadow:var(--shadow);max-width:calc(100% - 32px);display:flex;gap:10px;align-items:center}
 .toast::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);flex:none}

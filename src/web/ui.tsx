@@ -52,6 +52,7 @@ export const NavIkon: Record<string, ReactNode> = {
   gorevler: <><rect x="3" y="4" width="5" height="16" rx="1" /><rect x="10" y="4" width="5" height="11" rx="1" /><rect x="17" y="4" width="4" height="7" rx="1" /></>,
   etkinlikler: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></>,
   raporlar: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  entegrasyon: <path d="M8 8 4 12l4 4M16 8l4 4-4 4M14 5l-4 14" />,
 };
 
 export function OncelikPill({ o }: { o: TaskOncelik }) {

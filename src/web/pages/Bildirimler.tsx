@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { tarihGoster } from '../format';
-import { useUygulama } from '../uygulama';
+import { useUygulama, useVeri } from '../uygulama';
 import { Bos, Drawer } from '../ui';
 import type { BildirimGorunumu } from '../types';
 
@@ -66,6 +66,59 @@ export function BildirimPaneli({ onKapat, onYenile }: { onKapat: () => void; onY
         ))}
         {!liste.length && <Bos>Bildirim yok. Size Task atandığında, kabul/ret kararı verildiğinde veya yeni Duyuru yayınlandığında burada görünür.</Bos>}
       </div>
+      <Tercihler />
     </Drawer>
+  );
+}
+
+interface Tercih {
+  tur: string;
+  ad: string;
+  acik: boolean;
+}
+
+/** Bildirim tercihleri: tür başına uygulama içi bildirim açık/kapalı. */
+function Tercihler() {
+  const u = useUygulama();
+  const tercihler = useVeri<Tercih[]>('/bildirim/tercihler');
+  const [yerel, setYerel] = useState<Record<string, boolean>>({});
+  if (!tercihler.veri) return null;
+  const degistir = async (t: Tercih, acik: boolean) => {
+    setYerel((y) => ({ ...y, [t.tur]: acik }));
+    try {
+      await api(`/bildirim/tercihler/${t.tur}`, { method: 'PUT', body: { acik } });
+      u.bildir(`${t.ad}: ${acik ? 'açık' : 'kapalı'}`);
+    } catch (e) {
+      setYerel((y) => ({ ...y, [t.tur]: !acik }));
+      u.hata(e);
+    }
+  };
+  return (
+    <section className="sec">
+      <h2>Bildirim tercihleri</h2>
+      <div className="tbl-wrap">
+        <table className="prefs">
+          <thead>
+            <tr>
+              <th>Olay</th>
+              <th className="num">Uygulama içi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tercihler.veri.map((t) => (
+              <tr key={t.tur}>
+                <td>
+                  <label htmlFor={`pf-${t.tur}`}>{t.ad}</label>
+                </td>
+                <td className="num">
+                  <input id={`pf-${t.tur}`} type="checkbox" checked={yerel[t.tur] ?? t.acik} onChange={(e) => degistir(t, e.target.checked)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="hint">Kapattığınız türler için yeni bildirim oluşturulmaz.</p>
+    </section>
   );
 }
