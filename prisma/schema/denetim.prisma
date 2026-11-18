@@ -1,0 +1,23 @@
+// Denetim izi modülü: ekleme-tabanlı olay günlüğü (ADR-0002).
+// UPDATE/DELETE bir veritabanı trigger'ı ile engellenir (prisma/sql/denetim.sql);
+// tek izinli güncelleme arsivlendi alanının NULL'dan doldurulmasıdır.
+
+model DenetimKaydi {
+  id            BigInt    @id @default(autoincrement())
+  zaman         DateTime
+  // İşlemi fiilen yapan kullanıcı (ajan işleminde ajanın adına çalıştığı kullanıcı).
+  kullaniciId   String?
+  // Vekil kararlarında "X adına Y tarafından": X = adinaKullaniciId, Y = kullaniciId.
+  adinaKullaniciId String?
+  ajan          Boolean   @default(false)
+  ajanTokenId   String?
+  islem         String
+  varlikTuru    String?
+  varlikId      String?
+  veri          Json?
+  arsivlendi    DateTime?
+
+  @@index([zaman])
+  @@index([varlikTuru, varlikId])
+  @@index([kullaniciId])
+}

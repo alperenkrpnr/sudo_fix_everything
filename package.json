@@ -1,0 +1,44 @@
+{
+  "name": "siber-task",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server/dev.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "pretypecheck": "npm run db:generate --silent",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:generate": "PRISMA_QUERY_ENGINE_LIBRARY=prisma/no-native-engine prisma generate",
+    "postinstall": "npm run db:generate"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "6.19.3",
+    "@prisma/client": "6.19.3",
+    "express": "5.1.0",
+    "react": "19.1.10",
+    "react-dom": "19.1.10"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3",
+    "@types/node": "22.18.12",
+    "@types/pg": "8.15.5",
+    "@types/react": "19.1.17",
+    "@types/react-dom": "19.1.11",
+    "@vitejs/plugin-react": "5.0.4",
+    "embedded-postgres": "17.7.0-beta.16",
+    "pg": "8.16.3",
+    "prisma": "6.19.3",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "7.1.12",
+    "vitest": "3.2.4"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "prisma@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "@embedded-postgres/darwin-arm64@17.7.0-beta.16": true,
+    "esbuild@0.25.12": true
+  }
+}

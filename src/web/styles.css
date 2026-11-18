@@ -1,0 +1,12 @@
+body { font-family: system-ui, sans-serif; margin: 0; color: #1d2433; background: #f6f7f9; }
+header { display: flex; gap: 16px; align-items: center; padding: 10px 16px; background: #1d2433; color: #fff; }
+header nav { display: flex; gap: 8px; flex: 1; }
+header button, header a { color: #fff; background: transparent; border: 1px solid #fff4; border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+header button.aktif { background: #fff2; }
+main { padding: 16px; max-width: 1100px; margin: 0 auto; }
+.kart { background: #fff; border: 1px solid #dde1e7; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+.ekipler { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.etiket { display: inline-block; font-size: 12px; padding: 1px 6px; border-radius: 10px; background: #e8ecf3; margin-right: 4px; }
+.soluk { color: #6b7280; font-size: 13px; }
+.hata { color: #b91c1c; }
+ul { margin: 4px 0; padding-left: 18px; }

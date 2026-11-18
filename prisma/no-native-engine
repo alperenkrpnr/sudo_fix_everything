@@ -1,0 +1,3 @@
+Placeholder. PRISMA_QUERY_ENGINE_LIBRARY points here so the Prisma CLI does not try to
+download native engines from binaries.prisma.sh (unreachable on this network). The client
+uses engineType = "client" (wasm) and the CLI uses the JS schema engine (prisma.config.ts).

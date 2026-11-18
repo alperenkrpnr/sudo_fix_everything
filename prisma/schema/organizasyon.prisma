@@ -1,0 +1,84 @@
+// Organizasyon modülü: Direktörlük / Unit / Ekip / kullanıcı.
+// Üyelik ve yöneticilik tarih aralıklı kayıtlardır (ADR-0002):
+// aktif = gecerliBaslangic <= t AND (gecerliBitis IS NULL OR gecerliBitis > t).
+// Kayıt silinmez; ilişki bittiğinde gecerliBitis doldurulur.
+
+model Direktorluk {
+  id           String        @id
+  ad           String
+  unitler      Unit[]
+  yoneticilikler Yoneticilik[]
+}
+
+model Unit {
+  id             String        @id
+  kod            String        @unique
+  ad             String
+  direktorlukId  String
+  direktorluk    Direktorluk   @relation(fields: [direktorlukId], references: [id])
+  ekipler        Ekip[]
+  yoneticilikler Yoneticilik[]
+  arsivlendi     DateTime?
+}
+
+model Ekip {
+  id             String        @id
+  kod            String        @unique
+  ad             String
+  unitId         String
+  unit           Unit          @relation(fields: [unitId], references: [id])
+  uyelikler      Uyelik[]
+  yoneticilikler Yoneticilik[]
+  arsivlendi     DateTime?
+}
+
+model Kullanici {
+  id             String        @id
+  ad             String
+  eposta         String        @unique
+  unvan          String?
+  uyelikler      Uyelik[]
+  yoneticilikler Yoneticilik[]
+  arsivlendi     DateTime?
+}
+
+// Çalışan'ın bir Ekip'e üyeliği (tarih aralıklı).
+model Uyelik {
+  id               String    @id @default(cuid())
+  kullaniciId      String
+  kullanici        Kullanici @relation(fields: [kullaniciId], references: [id])
+  ekipId           String
+  ekip             Ekip      @relation(fields: [ekipId], references: [id])
+  gecerliBaslangic DateTime
+  gecerliBitis     DateTime?
+
+  @@index([ekipId])
+  @@index([kullaniciId])
+}
+
+enum YoneticilikTuru {
+  DIREKTOR
+  UNIT_HEAD
+  TEAM_HEAD
+}
+
+// Yönetici ilişkisi (tarih aralıklı). Türüne göre tam olarak biri dolu:
+// DIREKTOR -> direktorlukId, UNIT_HEAD -> unitId, TEAM_HEAD -> ekipId.
+model Yoneticilik {
+  id               String          @id @default(cuid())
+  tur              YoneticilikTuru
+  kullaniciId      String
+  kullanici        Kullanici       @relation(fields: [kullaniciId], references: [id])
+  direktorlukId    String?
+  direktorluk      Direktorluk?    @relation(fields: [direktorlukId], references: [id])
+  unitId           String?
+  unit             Unit?           @relation(fields: [unitId], references: [id])
+  ekipId           String?
+  ekip             Ekip?           @relation(fields: [ekipId], references: [id])
+  gecerliBaslangic DateTime
+  gecerliBitis     DateTime?
+
+  @@index([kullaniciId])
+  @@index([unitId])
+  @@index([ekipId])
+}
