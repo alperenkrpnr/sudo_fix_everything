@@ -14,6 +14,7 @@ import { seedEtkinlikDemo } from './seed/demo-etkinlik';
 import { seedKabulDemo } from './seed/kabul-demo';
 import { seedAjanTokenDemo } from './seed/ajan-token-demo';
 import { writeFile } from 'node:fs/promises';
+import { seedTaskDetayDemo } from './seed/task-detay-demo';
 import { createServices } from './services';
 
 const DB_NAME = 'siber_task';
@@ -38,6 +39,7 @@ await writeFile(path.join(ROOT, '.pgdata', 'dev-db-url'), pg.url(DB_NAME));
 const services = createServices({ db });
 await seedEtkinlikDemo(services);
 await seedKabulDemo(services);
+await seedTaskDetayDemo(services);
 // No scheduler: termin yaklaşma/geçme bildirimleri her dev başlangıcında işlenir (idempotent).
 await services.bildirim.terminBildirimleriniIsle();
 const app = express();

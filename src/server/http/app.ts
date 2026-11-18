@@ -5,6 +5,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import type { Actor } from '../core/actor';
 import type { Services } from '../services';
 import { taskRouter } from './task';
+import { taskDetayRouter } from './task-detay';
 import { taskDurumRouter } from './task-durum';
 import { etkinlikRouter } from './etkinlik';
 import { organizasyonRouter } from './organizasyon';
@@ -49,6 +50,7 @@ export function createApp(services: Services) {
   );
   app.use('/api/organizasyon', organizasyonRouter(services));
   app.get('/api/denetim', handler(services, (req, actor) => services.denetim.listele(actor, { islem: req.query.islem as string | undefined })));
+  app.use('/api/tasks', taskDetayRouter(services)); // önce: /backlog, /ekler/:id taskRouter'ın /:id'sine düşmesin
   app.use('/api/tasks', taskRouter(services));
   app.use('/api/tasks', taskDurumRouter(services));
   app.use('/api', etkinlikRouter(services));

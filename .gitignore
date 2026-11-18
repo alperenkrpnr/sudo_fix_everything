@@ -7,3 +7,4 @@ coverage/
 .pgdata*/
 .claude/worktrees/
 .pgdata/
+.ekler/

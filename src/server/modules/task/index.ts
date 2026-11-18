@@ -150,7 +150,8 @@ export function taskServisi(ctx: ServiceContext) {
   };
 }
 
-async function gorunurTask(tx: Tx, kullaniciId: string, t: Date, id: string): Promise<Task> {
+/** Görünür Task'ı yükler; görünmüyorsa BULUNAMADI. Alt modüller (task-detay) yetkiyi buradan alır. */
+export async function gorunurTask(tx: Tx, kullaniciId: string, t: Date, id: string): Promise<Task> {
   const task = await tx.task.findFirst({ where: { AND: [{ id }, await taskGorunurluk(tx, kullaniciId, t)] } });
   if (!task) throw new BulunamadiHatasi('Task bulunamadı');
   return task;
