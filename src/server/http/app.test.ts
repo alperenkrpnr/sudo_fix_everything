@@ -56,6 +56,16 @@ describe('web adaptörü', () => {
     expect(g.gecisler).toMatchObject([{ yeni: 'BLOKLU', neden: 'Erişim' }]);
   });
 
+  it('Bildirim tercihleri servis katmanına yönlenir', async () => {
+    const auth = { authorization: `Bearer mock:${F.waf1}`, 'content-type': 'application/json' };
+    const put = (tur: string, body: object) => fetch(`${base}/api/bildirim/tercihler/${tur}`, { method: 'PUT', headers: auth, body: JSON.stringify(body) });
+    expect((await put('TASK_BLOK', { acik: false })).status).toBe(200);
+    expect((await put('YOK', { acik: false })).status).toBe(400);
+    expect((await put('DUYURU', {})).status).toBe(400);
+    const liste = await (await fetch(`${base}/api/bildirim/tercihler`, { headers: auth })).json();
+    expect(liste.find((x: any) => x.tur === 'TASK_BLOK')).toMatchObject({ acik: false });
+  });
+
   it('token olmadan 401, yetkisiz işlemde 403 döner', async () => {
     expect((await fetch(`${base}/api/organizasyon`)).status).toBe(401);
     const res = await fetch(`${base}/api/denetim`, { headers: { authorization: `Bearer mock:${F.waf1}` } });
@@ -71,5 +81,14 @@ describe('web adaptörü', () => {
       });
     expect((await ekle(F.waf1)).status).toBe(403);
     expect((await ekle(F.thCoklu)).status).toBe(200);
+  });
+
+  it('rapor tarih aralığı gün olarak (bitiş günü dahil) servise yönlenir; geçersiz tarih 400', async () => {
+    const auth = { authorization: `Bearer mock:${F.waf1}`, 'content-type': 'application/json' };
+    await fetch(`${base}/api/tasks`, { method: 'POST', headers: auth, body: JSON.stringify({ baslik: 'Kendi işim' }) }); // 2026-03-02
+    const rapor = (q: string) => fetch(`${base}/api/rapor?${q}`, { headers: { authorization: `Bearer mock:${F.direktor}` } });
+    expect((await (await rapor('baslangic=2026-03-02&bitis=2026-03-02')).json()).genel.toplam).toBe(1);
+    expect((await (await rapor('baslangic=2026-03-03')).json()).genel.toplam).toBe(0);
+    expect((await rapor('bitis=03.03.2026')).status).toBe(400);
   });
 });

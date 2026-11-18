@@ -1,0 +1,15 @@
+// Ajan token'ı (ticket 13): bir AI ajanının kullanıcı adına REST/MCP üzerinden çalışması için.
+// Token'ın kendisi saklanmaz; yalnızca SHA-256 özeti. Satır silinmez, `iptal` ile kapatılır.
+
+model AjanToken {
+  id          String    @id @default(cuid())
+  kullaniciId String
+  ad          String
+  // 'okuma' | 'yazma'. Varsayılan salt okunur.
+  kapsamlar   String[]
+  tokenOzeti  String    @unique
+  olusturma   DateTime
+  iptal       DateTime?
+
+  @@index([kullaniciId])
+}

@@ -6,11 +6,18 @@
 //
 // Çözüm ve blok süresi ticket 04'ün durum tarihçesinden (`durumOzetleri` → `cozumSureleri`, `blokSuresiOzeti`).
 // Kabul bekleme ve ret raporu ticket 05 karar kayıtlarından (`modules/kabul/rapor.ts`); zincir kaydı yoksa null.
-// TODO (ADR-0002, ertelendi): Task'ın Ekibi `task.ekipId` (oluşturma anındaki); kapsam güncel yapıdan çözülür.
+//
+// Olay tarihindeki yapı (ADR-0002): Ekip ataması olay anında kaydedilen değerlerden okunur, güncel üyelikten
+// yeniden çözülmez. Task → `task.ekipId` (atama anında Assignee Ekibi), ret akışı → `requesterEkipId` /
+// `kararVerenEkipId` (zincir başlangıcı / karar anı). Taşınan Çalışanın geçmiş işleri eski Ekipte kalır.
+// Arşivlenmiş Ekip, Task'ı varsa listede kalır. Yetki kapsamı (kim neyi görür) güncel yapıdan çözülür.
+// Tarih aralığı: Task'lar `olusturma` ∈ [baslangic, bitis] ile seçilir; rapor anı = min(bitis, şimdi).
+// Durum, blok/çözüm süresi, geciken ve kabul kararları o an itibarıyla hesaplanır (sonraki olaylar sayılmaz).
+// Sınır: Ekip → Unit bağı tarih aralıklı değil; Unit filtresi güncel Unit'e göre çalışır.
 import type { Task, TaskDurum } from '@prisma/client';
 import type { Actor } from '../../core/actor';
 import type { ServiceContext } from '../../core/context';
-import { YetkiHatasi } from '../../core/errors';
+import { DogrulamaHatasi, YetkiHatasi } from '../../core/errors';
 import type { Tx } from '../../db/client';
 import { kabulBeklemeSureleri, retRaporuHesapla } from '../kabul/rapor';
 import { durumOzeti } from '../task/durum';
@@ -50,6 +57,9 @@ export interface RaporOzeti {
 export interface RaporFiltresi {
   ekipId?: string;
   unitId?: string;
+  /** Tarih aralığı (dahil): Task'lar oluşturulma anına göre seçilir. */
+  baslangic?: Date;
+  bitis?: Date;
 }
 
 const KAPALI: TaskDurum[] = ['TAMAMLANDI', 'IPTAL', 'REDDEDILDI'];
@@ -57,15 +67,31 @@ const SAAT = 3_600_000;
 
 type DurumOzetleri = Map<string, ReturnType<typeof durumOzeti>>;
 
-/** Task başına durum tarihçesi özeti (ticket 04): blok süresi ve tamamlanma anı. Tarihçesi olmayan Task yok sayılır. */
-export async function durumOzetleri(tx: Tx, tasks: Task[], simdi: Date): Promise<DurumOzetleri> {
+/**
+ * Task başına durum tarihçesi özeti (ticket 04) `ref` anı itibarıyla: blok süresi, tamamlanma anı ve
+ * `ref` anındaki durum. `ref` sonrası geçişler sayılmaz (geçmiş aralığın raporu sonradan değişmez).
+ * Tarihçesi olmayan Task'ın özeti yoktur; durumu güncel `task.durum` kabul edilir.
+ */
+export async function durumOzetleri(tx: Tx, tasks: Task[], ref: Date): Promise<{ ozetler: DurumOzetleri; durumlar: Map<string, TaskDurum> }> {
   const gecisler = await tx.taskDurumGecisi.findMany({
     where: { taskId: { in: tasks.map((x) => x.id) } },
     orderBy: [{ zaman: 'asc' }, { id: 'asc' }],
   });
   const grup = new Map<string, typeof gecisler>();
   for (const g of gecisler) grup.set(g.taskId, [...(grup.get(g.taskId) ?? []), g]);
-  return new Map([...grup].map(([id, gs]) => [id, durumOzeti(gs, simdi)]));
+  const ozetler: DurumOzetleri = new Map();
+  const durumlar = new Map<string, TaskDurum>();
+  for (const x of tasks) {
+    const tum = grup.get(x.id);
+    if (!tum) {
+      durumlar.set(x.id, x.durum);
+      continue;
+    }
+    const gs = tum.filter((g) => g.zaman <= ref);
+    ozetler.set(x.id, durumOzeti(gs, ref));
+    durumlar.set(x.id, gs.length ? gs[gs.length - 1].yeni : (tum[0].eski ?? x.durum));
+  }
+  return { ozetler, durumlar };
 }
 
 /**
@@ -81,8 +107,8 @@ export function cozumSureleri(tasks: Task[], ozetler: DurumOzetleri): Map<string
 }
 
 /** Kabul bekleme süresi (ticket 05 karar kayıtları: adım başlangıcı → karar). Zincir kaydı yok → null. */
-export async function kabulBeklemeOzeti(tx: Tx, tasks: Task[]): Promise<SureOzeti | null> {
-  return kabulBeklemeSureleri(tx, tasks.map((x) => x.id));
+export async function kabulBeklemeOzeti(tx: Tx, tasks: Task[], ref: Date): Promise<SureOzeti | null> {
+  return kabulBeklemeSureleri(tx, tasks.map((x) => x.id), ref);
 }
 
 /** Bloklu kalmış Task'lar ve Task başına ortalama blok süresi (hâlâ bloklu olan şimdiye kadar). */
@@ -93,8 +119,8 @@ export function blokSuresiOzeti(ozetler: DurumOzetleri): SureOzeti {
 }
 
 /** Ret oranı, gerekçe dağılımı, Ekip'ten Ekip'e ret akışı (ticket 05 karar kayıtları). Zincir kaydı yok → null. */
-export async function retRaporu(tx: Tx, tasks: Task[]): Promise<RaporOzeti['retRaporu']> {
-  return retRaporuHesapla(tx, tasks.map((x) => x.id));
+export async function retRaporu(tx: Tx, tasks: Task[], ref: Date): Promise<RaporOzeti['retRaporu']> {
+  return retRaporuHesapla(tx, tasks.map((x) => x.id), ref);
 }
 
 function metrik(tasks: Task[], sureler: Map<string, number>, simdi: Date): Metrik {
@@ -127,6 +153,10 @@ export function raporServisi(ctx: ServiceContext) {
     ozet(actor: Actor, filtre: RaporFiltresi = {}): Promise<RaporOzeti> {
       return oku(ctx, actor, 'rapor.ozet', async (kimlik, tx) => {
         const simdi = kimlik.zaman;
+        if (filtre.baslangic && filtre.bitis && filtre.baslangic > filtre.bitis)
+          throw new DogrulamaHatasi('Başlangıç bitişten sonra olamaz');
+        // Rapor anı: geçmiş bir aralık, aralık sonundaki duruma göre hesaplanır.
+        const ref = filtre.bitis && filtre.bitis < simdi ? filtre.bitis : simdi;
         const yonetici = yoneticiMi(kimlik.roller);
         const kapsam = await yonetimKapsami(tx, kimlik.kullaniciId, simdi);
 
@@ -142,21 +172,24 @@ export function raporServisi(ctx: ServiceContext) {
           ekipIds = filtreEkipleri;
         }
 
-        const tasks = await tx.task.findMany({
+        const adaylar = await tx.task.findMany({
           where: {
             durum: { not: 'TASLAK' },
+            ...(filtre.baslangic || filtre.bitis ? { olusturma: { gte: filtre.baslangic, lte: filtre.bitis } } : {}),
             ...(yonetici
               ? ekipIds === null ? {} : { ekipId: { in: ekipIds } }
               : { assigneeKullaniciId: kimlik.kullaniciId, ...(ekipIds ? { ekipId: { in: ekipIds } } : {}) }),
           },
         });
-        const ozetler = await durumOzetleri(tx, tasks, simdi);
+        const { ozetler, durumlar } = await durumOzetleri(tx, adaylar, ref);
+        // Durum `ref` anındakidir; o an Taslak olanlar sayılmaz.
+        const tasks = adaylar.map((x) => ({ ...x, durum: durumlar.get(x.id)! })).filter((x) => x.durum !== 'TASLAK');
         const sureler = cozumSureleri(tasks, ozetler);
         const blokSuresi = blokSuresiOzeti(ozetler);
-        const [kabulBekleme, ret] = await Promise.all([kabulBeklemeOzeti(tx, tasks), retRaporu(tx, tasks)]);
+        const [kabulBekleme, ret] = await Promise.all([kabulBeklemeOzeti(tx, tasks, ref), retRaporu(tx, tasks, ref)]);
         const sonuc: RaporOzeti = {
           kapsam: kapsam.tumu ? 'TUMU' : yonetici ? 'YONETICI' : 'KENDI',
-          genel: metrik(tasks, sureler, simdi),
+          genel: metrik(tasks, sureler, ref),
           ekipler: null,
           calisanlar: null,
           kabulBekleme,
@@ -166,20 +199,24 @@ export function raporServisi(ctx: ServiceContext) {
         if (!yonetici) return sonuc;
 
         const ekipler = await tx.ekip.findMany({
-          where: { arsivlendi: null, ...(ekipIds === null ? {} : { id: { in: ekipIds } }) },
+          // Arşivlenmiş Ekip, kapsamdaki Task'ları varsa geçmişiyle listede kalır (ADR-0002).
+          where: {
+            OR: [{ arsivlendi: null }, { id: { in: tasks.flatMap((x) => (x.ekipId ? [x.ekipId] : [])) } }],
+            ...(ekipIds === null ? {} : { id: { in: ekipIds } }),
+          },
           orderBy: { kod: 'asc' },
         });
         sonuc.ekipler = ekipler.map((e) => ({
           ekipId: e.id,
           kod: e.kod,
           ad: e.ad,
-          ...metrik(tasks.filter((x) => x.ekipId === e.id), sureler, simdi),
+          ...metrik(tasks.filter((x) => x.ekipId === e.id), sureler, ref),
         }));
 
         const kisiIds = [...new Set(tasks.flatMap((x) => (x.assigneeKullaniciId ? [x.assigneeKullaniciId] : [])))];
         const kisiler = await tx.kullanici.findMany({ where: { id: { in: kisiIds } }, select: { id: true, ad: true } });
         sonuc.calisanlar = kisiler
-          .map((k) => ({ kullaniciId: k.id, ad: k.ad, ...metrik(tasks.filter((x) => x.assigneeKullaniciId === k.id), sureler, simdi) }))
+          .map((k) => ({ kullaniciId: k.id, ad: k.ad, ...metrik(tasks.filter((x) => x.assigneeKullaniciId === k.id), sureler, ref) }))
           .sort(siralamaKarsilastir);
         return sonuc;
       });
