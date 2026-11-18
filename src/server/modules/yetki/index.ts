@@ -10,6 +10,7 @@ import { roller, type Rol } from './cozumleme';
 
 export * from './cozumleme';
 export * from './task';
+export * from './yonetim';
 
 /** Resolved caller identity, handed to the operation body. */
 export interface Kimlik {

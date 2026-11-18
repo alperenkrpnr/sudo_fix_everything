@@ -1,8 +1,9 @@
 // Organizasyon modülü: Direktörlük / Unit / Ekip / Çalışan görüntüleme.
-// Yapı yönetimi (oluştur/taşı/rol ata) ticket 02'de bu modüle eklenir.
+// Yazma işlemleri (yapı/üyelik/rol/profil) yonetim.ts içindedir.
 import type { Actor } from '../../core/actor';
 import type { ServiceContext } from '../../core/context';
 import { aktif, oku, roller, sorumluYonetici, uyeOlduguEkipler, yonetimKapsami, type Rol } from '../yetki';
+import { organizasyonYonetimi } from './yonetim';
 
 export interface Kisi {
   id: string;
@@ -52,6 +53,8 @@ const kisi = (k: { id: string; ad: string; unvan: string | null }): Kisi => ({ i
 
 export function organizasyonServisi(ctx: ServiceContext) {
   return {
+    ...organizasyonYonetimi(ctx),
+
     /**
      * Organizasyon yapısı. Herkes iskeleti (Unit, Ekip, yöneticiler) görür; Ekip üyelerini
      * yalnızca kendi Ekibinin üyeleri ve o Ekibi yöneten (Sorumlu/Üst) yöneticiler görür.
