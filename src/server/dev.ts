@@ -12,6 +12,8 @@ import { seedTaskDurumDemo } from './seed/task-durum-demo';
 import { seedRaporDemo } from './seed/rapor-demo';
 import { seedEtkinlikDemo } from './seed/demo-etkinlik';
 import { seedKabulDemo } from './seed/kabul-demo';
+import { seedAjanTokenDemo } from './seed/ajan-token-demo';
+import { writeFile } from 'node:fs/promises';
 import { createServices } from './services';
 
 const DB_NAME = 'siber_task';
@@ -29,6 +31,9 @@ await seedTaskDemo(db);
 await seedTaskDurumDemo(db);
 // After seedTaskDurumDemo: rapor-demo writes its own durum tarihçesi.
 await seedRaporDemo(db);
+await seedAjanTokenDemo(db);
+// `npm run mcp` (stdio MCP server) reads this to reach the running dev database.
+await writeFile(path.join(ROOT, '.pgdata', 'dev-db-url'), pg.url(DB_NAME));
 
 const services = createServices({ db });
 await seedEtkinlikDemo(services);
