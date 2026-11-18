@@ -1,5 +1,6 @@
 // Bildirim modülü: uygulama içi bildirim. Diğer modüller kendi yazma transaction'ı
-// içinde `bildirimGonder(tx, ...)` ile oluşturur. Tercihler (ticket 08) henüz yok.
+// içinde `bildirimGonder(tx, ...)` ile oluşturur. Kullanıcı bazlı tercihler (ticket 08)
+// `bildirimGonder` içinde uygulanır.
 
 model Bildirim {
   id          String    @id @default(cuid())
@@ -13,4 +14,25 @@ model Bildirim {
   okundu      DateTime?
 
   @@index([kullaniciId, olusturma])
+}
+
+// Kullanıcının kapattığı (acik=false) veya yeniden açtığı bildirim türü. Satır yoksa tür açıktır.
+model BildirimTercihi {
+  kullaniciId String
+  tur         String
+  acik        Boolean
+  guncelleme  DateTime
+
+  @@id([kullaniciId, tur])
+}
+
+// Termin yaklaşma/geçme bildiriminin bir kez gönderildiği kayıt. Anahtar bitisTarihi'ni içerir:
+// termin değişirse yeni bildirim gider.
+model TerminBildirimi {
+  taskId      String
+  tur         String
+  bitisTarihi DateTime
+  gonderim    DateTime
+
+  @@id([taskId, tur, bitisTarihi])
 }
