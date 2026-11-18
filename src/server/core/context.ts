@@ -9,6 +9,8 @@ export interface Config {
   ekDizini: string;
   /** Tek dosya eki için üst sınır (bayt). */
   ekMaxBayt: number;
+  /** Termin yaklaşma bildirimi penceresi (gün). Ticket 08: varsayılan 2. */
+  terminYaklasmaGun: number;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -16,6 +18,7 @@ export const DEFAULT_CONFIG: Config = {
   eskalasyonIsGunu: 3,
   ekDizini: process.env.EK_DIZINI ?? '.ekler',
   ekMaxBayt: 10 * 1024 * 1024,
+  terminYaklasmaGun: 2,
 };
 
 /** Shared dependencies handed to every module service. */

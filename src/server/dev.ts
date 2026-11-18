@@ -35,6 +35,8 @@ const services = createServices({ db });
 await seedEtkinlikDemo(services);
 await seedKabulDemo(services);
 await seedTaskDetayDemo(services);
+// No scheduler: termin yaklaşma/geçme bildirimleri her dev başlangıcında işlenir (idempotent).
+await services.bildirim.terminBildirimleriniIsle();
 const app = express();
 app.use(createApp(services));
 const vite = await createViteServer({ configFile: path.join(ROOT, 'vite.config.ts'), server: { middlewareMode: true } });
