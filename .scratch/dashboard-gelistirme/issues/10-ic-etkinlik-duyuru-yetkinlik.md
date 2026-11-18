@@ -4,7 +4,7 @@
 
 **Blocked by:** 01; 08
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] İç etkinlik oluşturma, davet ve katılım yanıtı
 - [ ] İç etkinlik onay gerektirmez
@@ -13,3 +13,7 @@
 - [ ] Sertifika bitişinden önce hatırlatma bildirimi
 - [ ] Yönetici kendi Ekibi'nin Yetkinlik ve Etkinlik geçmişini görür
 - [ ] Görünürlük yetki katmanından geçer
+
+## Comments
+
+- 2026-11-18: Built as a lean demo on `feat/dashboard-gelistirme`. Deferred: notification preferences, a scheduler for certificate reminders (the reminder runs from the dev seed), editing or deleting Etkinlik/Duyuru/Yetkinlik.

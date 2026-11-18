@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Task alanları: başlık, açıklama, öncelik, bitiş tarihi, etiket, Requester, Assignee, durum, Ekip, isteğe bağlı harici ticket referansı
 - [ ] Self-assign otomatik kabul sayılır
@@ -14,3 +14,7 @@
 - [ ] Liste ve pano (Planner/Trello benzeri) görünümü çalışır
 - [ ] Atama olayları denetim izine yazılır
 - [ ] Yetki katmanı seam'inde görünürlük ve atama testleri geçer
+
+## Comments
+
+- 2026-11-18: Built as a lean demo on `feat/dashboard-gelistirme`. Deferred: drag-and-drop on the board, filters other than status.

@@ -12,3 +12,7 @@
 - [ ] Yönetici panosu Ekip onaylarını da gösterir
 - [ ] Panoda liste termine ve bekleme yaşına göre sıralanır
 - [ ] Pano aynı bileşendir; içerik yetki katmanından beslenir
+
+## Comments
+
+- 2026-11-18: Partly built on `feat/dashboard-gelistirme`. Done: the minimal in-app notification module (from ticket 10) and the Bekleyen işlerim page (Task acceptances plus Etkinlik invites, sorted by due date then age). Open: per-user notification preferences, due-date-approaching/overdue notifications.

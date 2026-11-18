@@ -4,7 +4,7 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] İzinli durum geçişleri tanımlı ve geçersiz geçişler reddedilir
 - [ ] Bloklu için neden zorunlu
@@ -14,3 +14,7 @@
 - [ ] Kabul Bekliyor durumunda işe başlanamaz
 - [ ] Blok süresi ölçülebilir şekilde kaydedilir
 - [ ] Durum değişiklikleri denetim izine yazılır
+
+## Comments
+
+- 2026-11-18: Built as a lean demo on `feat/dashboard-gelistirme`. Deferred: a status-history row on Task creation (creation time is the start point), Assignee cancel.

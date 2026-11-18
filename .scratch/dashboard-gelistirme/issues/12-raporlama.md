@@ -15,3 +15,7 @@
 - [ ] Rol kapsamı: Çalışan kendisi, yönetici Ekibi/Unit'i, Direktör hepsi
 - [ ] Çalışan taşındığında geçmiş rapor olay tarihindeki yapıya göre kalır (ADR-0002)
 - [ ] Seam testlerinde fixture üzerinde sayılar doğrulanır
+
+## Comments
+
+- 2026-11-18: Partly built on `feat/dashboard-gelistirme`. Done: open/closed per Ekip and Çalışan, average resolution time, kabul bekleme süresi, blok süresi, Ekip performance, overdue count, ret raporu, role scope, Çalışan ranking only for managers, Unit/Ekip filter. Open: date-range filter, computing reports with the org structure at the event date (ADR-0002, TODO in the rapor module).

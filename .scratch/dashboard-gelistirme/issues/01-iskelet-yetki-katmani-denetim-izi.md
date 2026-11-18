@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Mock kullanıcı seçilerek giriş yapılabilir; Direktör, Unit Head, Team Head ve Çalışan rolleri ayrışır
 - [ ] Organizasyon yapısı (Direktörlük/Unit/Ekip/Çalışan) rol yetkisine göre görüntülenir
@@ -13,3 +13,7 @@
 - [ ] Denetim izi yalnızca eklenir, silinmez, arşivlenir; saklama süresi yapılandırılabilir (varsayılan 5 yıl)
 - [ ] Seed fixture: Direktör, iki Unit, Team Head'li ve Team Head'siz Ekipler, çok Ekipli Team Head, birkaç Çalışan
 - [ ] Servis katmanı seam'inde gerçek PostgreSQL test veritabanıyla testler çalışır
+
+## Comments
+
+- 2026-11-18: Built as a lean demo on `feat/dashboard-gelistirme`. Deferred: archiving old audit records (only the 5-year retention setting and the database no-delete trigger exist).
