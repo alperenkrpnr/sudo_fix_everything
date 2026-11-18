@@ -5,3 +5,5 @@ dist/
 *.log
 coverage/
 .pgdata*/
+.claude/worktrees/
+.pgdata/
