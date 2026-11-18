@@ -88,6 +88,21 @@ describe('Vekil kararları', () => {
     expect((await t.services.kabul.kabulEt(kullanici(F.uhSavunma), task.id)).durum).toBe('KABUL_EDILDI');
   });
 
+  it("yürürlükteki Vekil asil'in Ekip gelen kutusunu görür ve havuzdan delege edebilir; süre bitince göremez", async () => {
+    await t.services.vekalet.ata(kullanici(F.thCoklu), { vekilId: F.uhIstihbarat, ...HAFTA });
+    const kabul = await socEkibineTalep();
+    // Direktör → TEAM-WAF: direkt kabul, havuza düşer
+    const havuz = await t.services.task.olustur(kullanici(F.direktor), { baslik: 'WAF havuzu', assigneeEkipId: F.ekipWaf });
+
+    const kutu = await t.services.kabul.ekipGelenKutusu(kullanici(F.uhIstihbarat));
+    expect(kutu.kayitlar.map((k) => [k.task.id, k.tur])).toEqual(expect.arrayContaining([[kabul.id, 'KABUL'], [havuz.id, 'HAVUZ']]));
+    await t.services.kabul.delegeEt(kullanici(F.uhIstihbarat), havuz.id, F.waf2);
+
+    t.now = d('2026-03-09T00:00:00Z');
+    const sonra = await t.services.kabul.ekipGelenKutusu(kullanici(F.uhIstihbarat));
+    expect(sonra.kayitlar.map((k) => k.ekipId)).not.toContain(F.ekipSoc);
+  });
+
   it('Vekalet atama ve sonlandırma denetim izine yazılır', async () => {
     const v = await t.services.vekalet.ata(kullanici(F.thCoklu), { vekilId: F.waf1, ...HAFTA });
     await t.services.vekalet.sonlandir(kullanici(F.thCoklu), v.id);

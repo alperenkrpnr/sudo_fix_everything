@@ -5,10 +5,12 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import type { Actor } from '../core/actor';
 import type { Services } from '../services';
 import { taskRouter } from './task';
+import { taskDetayRouter } from './task-detay';
 import { taskDurumRouter } from './task-durum';
 import { etkinlikRouter } from './etkinlik';
 import { organizasyonRouter } from './organizasyon';
 import { kabulRouter } from './kabul';
+import { delegasyonRouter } from './delegasyon';
 import { dashboardRouter } from './dashboard';
 import { vekaletRouter } from './vekalet';
 import { ajanTokenRouter } from './ajan-token';
@@ -50,10 +52,12 @@ export function createApp(services: Services) {
   );
   app.use('/api/organizasyon', organizasyonRouter(services));
   app.get('/api/denetim', handler(services, (req, actor) => services.denetim.listele(actor, { islem: req.query.islem as string | undefined })));
+  app.use('/api/tasks', taskDetayRouter(services)); // önce: /backlog, /ekler/:id taskRouter'ın /:id'sine düşmesin
   app.use('/api/tasks', taskRouter(services));
   app.use('/api/tasks', taskDurumRouter(services));
   app.use('/api', etkinlikRouter(services));
   app.use('/api/kabul', kabulRouter(services));
+  app.use('/api/kabul', delegasyonRouter(services));
   app.use('/api', dashboardRouter(services));
   app.use('/api', vekaletRouter(services));
   app.use('/api/ajan-tokenlari', ajanTokenRouter(services));

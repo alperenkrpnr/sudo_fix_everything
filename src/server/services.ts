@@ -16,6 +16,7 @@ import { raporServisi } from './modules/rapor';
 import { vekaletServisi } from './modules/vekalet';
 import { eskalasyonServisi } from './modules/eskalasyon';
 import { ajanTokenServisi } from './modules/ajan-token';
+import { taskDetayServisi } from './modules/task-detay';
 
 export function createServices(opts: { db: Db; now?: () => Date; config?: Partial<Config> }) {
   const ctx: ServiceContext = {
@@ -39,6 +40,7 @@ export function createServices(opts: { db: Db; now?: () => Date; config?: Partia
     vekalet: vekaletServisi(ctx),
     eskalasyon: eskalasyonServisi(ctx),
     ajanToken: ajanTokenServisi(ctx),
+    taskDetay: taskDetayServisi(ctx),
   };
 }
 

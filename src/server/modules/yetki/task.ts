@@ -2,6 +2,7 @@
 import type { Prisma } from '@prisma/client';
 import type { Tx } from '../../db/client';
 import { aktif, uyeOlduguEkipler, yonetimKapsami } from './cozumleme';
+import { vekaletenSorumluEkipler } from './delegasyon';
 
 export type TaskAtamaHedefi = { kullaniciId: string } | { ekipId: string };
 
@@ -11,6 +12,7 @@ export type TaskAtamaHedefi = { kullaniciId: string } | { ekipId: string };
  * - Çalışan: açtığı, kendisine atanan ve (kabul bekleme dışında) Ekibi'ne atanan Task'lar.
  * - Yönetici: yönettiği Ekiplerin üyeleri/Team Head'leri Requester veya Assignee olan, ya da
  *   yönettiği Ekip'e atanan tüm Task'lar (Üst yönetici kuralı). Direktör: hepsi.
+ * - Vekil (yürürlükte): asil'in Sorumlu Ekiplerine ve onların üyelerine atanan Task'lar.
  */
 export async function taskGorunurluk(tx: Tx, kullaniciId: string, t: Date): Promise<Prisma.TaskWhereInput> {
   const kapsam = await yonetimKapsami(tx, kullaniciId, t);
@@ -28,6 +30,12 @@ export async function taskGorunurluk(tx: Tx, kullaniciId: string, t: Date): Prom
       ...taslakDegil,
       OR: [{ requesterId: { in: alt } }, { assigneeKullaniciId: { in: alt } }, { assigneeEkipId: { in: kapsam.ekipIds } }],
     });
+  }
+  // Ticket 09: yürürlükteki Vekil, asil'in Sorumlu yöneticisi olduğu Ekiplere ve üyelerine atanan Task'ları görür
+  // (karar verebileceği kabul adımları ve havuz).
+  const vekaleten = await vekaletenSorumluEkipler(tx, kullaniciId, t);
+  if (vekaleten.length) {
+    or.push({ ...taslakDegil, OR: [{ assigneeEkipId: { in: vekaleten } }, { assigneeKullaniciId: { in: await altKullanicilar(tx, vekaleten, t) } }] });
   }
   return { OR: or };
 }

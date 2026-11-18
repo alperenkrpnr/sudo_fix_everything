@@ -1,0 +1,38 @@
+// Task detayı (ticket 07): alt task, yorum, dosya eki. Task'a bağlı; Kullanici referansları düz String id.
+// taskId düz String (relation yok, task.prisma değişmez); yetki üst Task'ın görünürlüğünden gelir.
+
+model AltTask {
+  id                String    @id @default(cuid())
+  taskId            String
+  baslik            String
+  tamamlandi        Boolean   @default(false)
+  olusturanId       String
+  olusturma         DateTime
+  tamamlanmaZamani  DateTime?
+
+  @@index([taskId])
+}
+
+// Yorumlar eklemelidir (düzenlenmez/silinmez) ve Task tarihçesinde yer alır.
+model TaskYorumu {
+  id          String   @id @default(cuid())
+  taskId      String
+  yazarId     String
+  metin       String
+  zaman       DateTime
+
+  @@index([taskId, zaman])
+}
+
+// Dosya içeriği diskte `ctx.config.ekDizini/<id>` altında; adı kullanıcıdan gelmez.
+model TaskEki {
+  id          String   @id @default(cuid())
+  taskId      String
+  dosyaAdi    String
+  mimeTuru    String
+  boyut       Int
+  yukleyenId  String
+  zaman       DateTime
+
+  @@index([taskId])
+}
