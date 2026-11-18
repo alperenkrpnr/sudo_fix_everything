@@ -1,0 +1,27 @@
+// Delegasyon (ticket 06): Ekip'e atanmış ve kabul edilmiş Task'ın Sorumlu yönetici tarafından Ekip içinden
+// bir Çalışan'a atanması. Task, Çalışan kabul edene kadar Ekip havuzunda (assigneeEkipId) kalır; Çalışan
+// kabul edince Assignee o Çalışan olur, reddederse Task Ekip havuzunda kalır (Reddedildi olmaz).
+// Referanslar düz String id'dir (relation yok; bütünlük servis katmanında).
+
+enum DelegasyonDurumu {
+  BEKLIYOR
+  KABUL
+  RET
+  // Sorumlu yönetici bekleyen delegasyonu başka bir Çalışan'a delege ederek geri aldı.
+  GERI_ALINDI
+}
+
+model Delegasyon {
+  id            String           @id @default(cuid())
+  taskId        String
+  ekipId        String
+  calisanId     String
+  delegeEdenId  String
+  durum         DelegasyonDurumu @default(BEKLIYOR)
+  baslangic     DateTime
+  kararZamani   DateTime?
+  gerekce       String?
+
+  @@index([taskId])
+  @@index([calisanId, durum])
+}

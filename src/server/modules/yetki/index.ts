@@ -12,6 +12,7 @@ export * from './cozumleme';
 export * from './task';
 export * from './kabul';
 export * from './yonetim';
+export * from './delegasyon';
 
 /** Resolved caller identity, handed to the operation body. */
 export interface Kimlik {

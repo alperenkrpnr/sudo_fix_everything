@@ -12,6 +12,7 @@ import { seedTaskDurumDemo } from './seed/task-durum-demo';
 import { seedRaporDemo } from './seed/rapor-demo';
 import { seedEtkinlikDemo } from './seed/demo-etkinlik';
 import { seedKabulDemo } from './seed/kabul-demo';
+import { seedDelegasyonDemo } from './seed/delegasyon-demo';
 import { seedAjanTokenDemo } from './seed/ajan-token-demo';
 import { writeFile } from 'node:fs/promises';
 import { seedTaskDetayDemo } from './seed/task-detay-demo';
@@ -40,6 +41,7 @@ const services = createServices({ db });
 await seedEtkinlikDemo(services);
 await seedKabulDemo(services);
 await seedTaskDetayDemo(services);
+await seedDelegasyonDemo(services);
 // No scheduler: termin yaklaşma/geçme bildirimleri her dev başlangıcında işlenir (idempotent).
 await services.bildirim.terminBildirimleriniIsle();
 const app = express();
