@@ -1,16 +1,19 @@
 // "Bekleyen işlerim": kullanıcının üzerinde bekleyen her şey tek listede (Çalışan ve Yönetici aynı
 // bileşen; içerik yetki katmanından gelir). Kaynaklar:
-//  - kabul bekleyen Task'lar  → `bekleyenKabuller` (ticket 05 kabul zinciri adımları)
+//  - kabul bekleyen Task'lar  → `bekleyenKabuller` (ticket 05 kabul zinciri adımları; ticket 09: `grup`
+//    kendi / Vekil / eskale edilen)
 //  - yanıt bekleyen Etkinlik davetleri → etkinlik#bekleyenDavetleriGetir
 // Sıra: termin (yakın önce, tarihsiz en sonda), sonra bekleme yaşı (eski önce).
 import type { Actor } from '../../core/actor';
 import type { ServiceContext } from '../../core/context';
 import type { Tx } from '../../db/client';
 import { bekleyenDavetleriGetir } from '../etkinlik';
-import { bekleyenKabulAdimlari } from '../kabul';
+import { bekleyenKabulAdimlari, type BekleyenKabul } from '../kabul';
 import { oku } from '../yetki';
 
 export type BekleyenTuru = 'TASK_KABUL' | 'ETKINLIK_DAVETI';
+/** Pano grubu (ticket 09): kendi işlerim, Vekil olarak (veya Vekil ilgili olduğu için Üst yönetici olarak) üstlendiklerim, eskale edilenler. */
+export type BekleyenGrubu = 'KENDI' | 'VEKIL' | 'ESKALASYON';
 
 export interface BekleyenIs {
   tur: BekleyenTuru;
@@ -23,6 +26,9 @@ export interface BekleyenIs {
   beklemeBaslangici: Date;
   /** Neden bende: 'Bana atandı', 'Ekip onayı: TEAM-WAF', ... */
   neden: string;
+  grup: BekleyenGrubu;
+  /** VEKIL grubunda: kimin adına. */
+  adinaKullaniciId: string | null;
 }
 
 /**
@@ -35,18 +41,43 @@ export async function bekleyenKabuller(tx: Tx, kullaniciId: string, t: Date): Pr
   const ekipKodlari = new Map(
     (await tx.ekip.findMany({ where: { id: { in: ekipIds } }, select: { id: true, kod: true } })).map((e) => [e.id, e.kod]),
   );
-  return adimlar.map(({ task, tur, baslangic }) => ({
+  const adlar = new Map(
+    (
+      await tx.kullanici.findMany({
+        where: { id: { in: adimlar.flatMap((a) => ('adinaKullaniciId' in a.sifat ? [a.sifat.adinaKullaniciId] : [])) } },
+        select: { id: true, ad: true },
+      })
+    ).map((k) => [k.id, k.ad]),
+  );
+  return adimlar.map(({ task, tur, baslangic, sifat }) => ({
     tur: 'TASK_KABUL',
+    grup: sifat.sifat === 'ASIL' ? 'KENDI' : sifat.sifat === 'ESKALASYON' ? 'ESKALASYON' : 'VEKIL',
+    adinaKullaniciId: 'adinaKullaniciId' in sifat ? sifat.adinaKullaniciId : null,
     id: task.id,
     baslik: task.baslik,
     termin: task.bitisTarihi,
     beklemeBaslangici: baslangic,
-    neden: task.assigneeEkipId
-      ? `Ekip onayı: ${ekipKodlari.get(task.assigneeEkipId) ?? task.assigneeEkipId}`
-      : tur === 'SORUMLU'
-        ? 'Sorumlu yönetici onayı'
-        : 'Bana atandı',
+    neden: kabulNedeni(sifat, adlar, () =>
+      task.assigneeEkipId
+        ? `Ekip onayı: ${ekipKodlari.get(task.assigneeEkipId) ?? task.assigneeEkipId}`
+        : tur === 'SORUMLU'
+          ? 'Sorumlu yönetici onayı'
+          : 'Bana atandı',
+    ),
   }));
+}
+
+function kabulNedeni(sifat: BekleyenKabul['sifat'], adlar: Map<string, string>, kendi: () => string): string {
+  switch (sifat.sifat) {
+    case 'VEKIL':
+      return `${adlar.get(sifat.adinaKullaniciId) ?? sifat.adinaKullaniciId} adına Vekil olarak`;
+    case 'UST_YONETICI':
+      return `${adlar.get(sifat.adinaKullaniciId) ?? sifat.adinaKullaniciId} yerine Üst yönetici olarak (Vekil talebin ilgilisi)`;
+    case 'ESKALASYON':
+      return 'Eskale edildi: süresinde karar verilmedi';
+    default:
+      return kendi();
+  }
 }
 
 function sirala(a: BekleyenIs, b: BekleyenIs): number {
@@ -72,6 +103,8 @@ export function bekleyenServisi(ctx: ServiceContext) {
           termin: d.etkinlik.baslangic,
           beklemeBaslangici: d.etkinlik.baslangic,
           neden: 'Etkinlik daveti',
+          grup: 'KENDI',
+          adinaKullaniciId: null,
         }));
         return [...kabuller, ...davetIsleri].sort(sirala);
       });

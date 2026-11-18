@@ -12,6 +12,7 @@ import { seedTaskDurumDemo } from './seed/task-durum-demo';
 import { seedRaporDemo } from './seed/rapor-demo';
 import { seedEtkinlikDemo } from './seed/demo-etkinlik';
 import { seedKabulDemo } from './seed/kabul-demo';
+import { seedVekaletDemo } from './seed/vekalet-demo';
 import { createServices } from './services';
 
 const DB_NAME = 'siber_task';
@@ -33,6 +34,8 @@ await seedRaporDemo(db);
 const services = createServices({ db });
 await seedEtkinlikDemo(services);
 await seedKabulDemo(services);
+// After seedKabulDemo: Vekalet demo + eskalasyonlariIsle (no scheduler; runs once on start).
+await seedVekaletDemo(services);
 const app = express();
 app.use(createApp(services));
 const vite = await createViteServer({ configFile: path.join(ROOT, 'vite.config.ts'), server: { middlewareMode: true } });

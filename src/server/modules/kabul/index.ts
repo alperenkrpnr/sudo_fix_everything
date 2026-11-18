@@ -9,6 +9,8 @@ import type { Tx } from '../../db/client';
 import { bildirimGonder } from '../bildirim';
 import { durumGecisiKaydet } from '../task/durum';
 import {
+  adimBildirimAlicilari,
+  adimKararVerenleri,
   adimOnaylayicilari,
   kabulZinciriPlani,
   kullaniciEkibi,
@@ -17,6 +19,7 @@ import {
   taskGorunurluk,
   uyeOlduguEkipler,
   yaz,
+  type KararSifati,
   type TaskAtamaHedefi,
   type ZincirPlani,
 } from '../yetki';
@@ -35,6 +38,8 @@ export interface BekleyenKabul {
   /** Bu adım ne zamandan beri karar bekliyor (kabul bekleme süresi başlangıcı). */
   baslangic: Date;
   task: Task;
+  /** Kullanıcı bu adımda hangi sıfatla karar verir (kendi / Vekil / Üst yönetici / eskalasyon; ticket 09). */
+  sifat: KararSifati;
 }
 
 /** Atama sonrası durumu ve zinciri hesaplar (Task oluşturulmadan önce çağrılır). */
@@ -66,7 +71,7 @@ export async function zincirBaslat(tx: Tx, task: Task, plan: ZincirPlani, t: Dat
   });
   await bildirimGonder(tx, {
     ...bildirim,
-    kullaniciIds: await adimOnaylayicilari(tx, plan.adimlar[0], task, t),
+    kullaniciIds: await adimBildirimAlicilari(tx, plan.adimlar[0], task, t),
     tur: 'KABUL_TALEBI',
     mesaj: `Kabul bekleyen Task: ${task.baslik}`,
   });
@@ -89,8 +94,9 @@ export async function bekleyenKabulAdimlari(tx: Tx, kullaniciId: string, t: Date
   const out: BekleyenKabul[] = [];
   for (const a of adimlar) {
     const task = taskMap.get(a.taskId);
-    if (!task || !(await adimOnaylayicilari(tx, a.tur, task, t)).includes(kullaniciId)) continue;
-    out.push({ adimId: a.id, sira: a.sira, tur: a.tur, baslangic: a.baslangic!, task });
+    const sifat = task && (await adimKararVerenleri(tx, a, task, t)).get(kullaniciId);
+    if (!task || !sifat) continue;
+    out.push({ adimId: a.id, sira: a.sira, tur: a.tur, baslangic: a.baslangic!, task, sifat });
   }
   return out;
 }
@@ -111,9 +117,11 @@ async function aktifAdim(tx: Tx, kullaniciId: string, t: Date, taskId: string) {
     orderBy: [{ deneme: 'desc' }, { sira: 'asc' }],
   });
   if (!adim) throw new DogrulamaHatasi('Bekleyen kabul adımı yok');
-  if (!(await adimOnaylayicilari(tx, adim.tur, task, t)).includes(kullaniciId))
-    throw new YetkiHatasi('Bu kabul adımının onaylayıcısı değilsiniz');
-  return { task, adim };
+  const sifat = (await adimKararVerenleri(tx, adim, task, t)).get(kullaniciId);
+  if (!sifat) throw new YetkiHatasi('Bu kabul adımının onaylayıcısı değilsiniz');
+  // Vekil kararı "X adına Y tarafından" kaydedilir (ticket 09).
+  const adinaKullaniciId = sifat.sifat === 'VEKIL' ? sifat.adinaKullaniciId : null;
+  return { task, adim, sifat: sifat.sifat, adinaKullaniciId };
 }
 
 /** Kararı verenin Ekibi: ASSIGNEE adımında Assignee'nin Ekibi, SORUMLU adımda yönetilen Ekip. */
@@ -156,10 +164,10 @@ export function kabulServisi(ctx: ServiceContext) {
     kabulEt(actor: Actor, taskId: string): Promise<Task> {
       return yaz(ctx, actor, 'kabul.kabulEt', async (kimlik, tx) => {
         const t = kimlik.zaman;
-        const { task, adim } = await aktifAdim(tx, kimlik.kullaniciId, t, taskId);
+        const { task, adim, sifat, adinaKullaniciId } = await aktifAdim(tx, kimlik.kullaniciId, t, taskId);
         await tx.kabulAdimi.update({
           where: { id: adim.id },
-          data: { karar: 'KABUL', kararZamani: t, kararVerenId: kimlik.kullaniciId, kararVerenEkipId: await kararVerenEkibi(tx, adim, task, kimlik.kullaniciId, t) },
+          data: { karar: 'KABUL', kararZamani: t, kararVerenId: kimlik.kullaniciId, adinaKullaniciId, kararVerenEkipId: await kararVerenEkibi(tx, adim, task, kimlik.kullaniciId, t) },
         });
         const sonraki = await tx.kabulAdimi.findFirst({ where: { taskId, deneme: adim.deneme, sira: adim.sira + 1 } });
         let guncel = task;
@@ -168,7 +176,7 @@ export function kabulServisi(ctx: ServiceContext) {
           await tx.kabulAdimi.update({ where: { id: sonraki.id }, data: { baslangic: t } });
           await bildirimGonder(tx, {
             ...bildirim,
-            kullaniciIds: await adimOnaylayicilari(tx, sonraki.tur, task, t),
+            kullaniciIds: await adimBildirimAlicilari(tx, sonraki.tur, task, t),
             tur: 'KABUL_TALEBI',
             mesaj: `Kabul bekleyen Task: ${task.baslik}`,
           });
@@ -179,7 +187,7 @@ export function kabulServisi(ctx: ServiceContext) {
         await bildirimGonder(tx, { ...bildirim, kullaniciIds: [task.requesterId], tur: 'TASK_KABUL', mesaj: `${kimlik.ad} Task'ı kabul etti: ${task.baslik}` });
         return {
           sonuc: guncel,
-          denetim: { varlikTuru: 'Task', varlikId: taskId, veri: { adimId: adim.id, deneme: adim.deneme, sira: adim.sira, tur: adim.tur, karar: 'KABUL', durum: guncel.durum } },
+          denetim: { varlikTuru: 'Task', varlikId: taskId, adinaKullaniciId, veri: { adimId: adim.id, deneme: adim.deneme, sira: adim.sira, tur: adim.tur, karar: 'KABUL', sifat, durum: guncel.durum } },
         };
       });
     },
@@ -190,10 +198,10 @@ export function kabulServisi(ctx: ServiceContext) {
         const t = kimlik.zaman;
         const g = gerekce?.trim();
         if (!g) throw new DogrulamaHatasi('Ret gerekçesi zorunlu');
-        const { task, adim } = await aktifAdim(tx, kimlik.kullaniciId, t, taskId);
+        const { task, adim, sifat, adinaKullaniciId } = await aktifAdim(tx, kimlik.kullaniciId, t, taskId);
         await tx.kabulAdimi.update({
           where: { id: adim.id },
-          data: { karar: 'RET', gerekce: g, kararZamani: t, kararVerenId: kimlik.kullaniciId, kararVerenEkipId: await kararVerenEkibi(tx, adim, task, kimlik.kullaniciId, t) },
+          data: { karar: 'RET', gerekce: g, kararZamani: t, kararVerenId: kimlik.kullaniciId, adinaKullaniciId, kararVerenEkipId: await kararVerenEkibi(tx, adim, task, kimlik.kullaniciId, t) },
         });
         const guncel = await tx.task.update({ where: { id: taskId }, data: { durum: 'REDDEDILDI', guncelleme: t } });
         await durumGecisiKaydet(tx, { taskId, eski: 'KABUL_BEKLIYOR', yeni: 'REDDEDILDI', zaman: t, kullaniciId: kimlik.kullaniciId, neden: g });
@@ -208,7 +216,7 @@ export function kabulServisi(ctx: ServiceContext) {
         });
         return {
           sonuc: guncel,
-          denetim: { varlikTuru: 'Task', varlikId: taskId, veri: { adimId: adim.id, deneme: adim.deneme, sira: adim.sira, tur: adim.tur, karar: 'RET', gerekce: g, durum: 'REDDEDILDI' } },
+          denetim: { varlikTuru: 'Task', varlikId: taskId, adinaKullaniciId, veri: { adimId: adim.id, deneme: adim.deneme, sira: adim.sira, tur: adim.tur, karar: 'RET', sifat, gerekce: g, durum: 'REDDEDILDI' } },
         };
       });
     },

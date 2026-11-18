@@ -1,0 +1,33 @@
+// Vekalet ve eskalasyon (ticket 09). Referanslar düz String id'dir (relation yok).
+
+// Yönetici (asil, "X") onay yetkisini [baslangic, bitis) aralığında Vekil'e ("Y") devreder.
+// Süre bitince kendiliğinden sona erer (çözümleme tarihe bakar); erken bitirmede `bitis` öne çekilir.
+model Vekalet {
+  id        String   @id @default(cuid())
+  asilId    String
+  vekilId   String
+  baslangic DateTime
+  bitis     DateTime
+  olusturma DateTime
+
+  @@index([asilId])
+  @@index([vekilId])
+}
+
+// Süresinde karar verilmeyen bir onayın üst yöneticiye taşınması. Bir onay (varlık) en fazla bir kez
+// eskale edilir. varlikTuru: 'KabulAdimi' (ticket 09); dış Etkinlik onayı (ticket 11) kendi türünü kullanır.
+model Eskalasyon {
+  id         String   @id @default(cuid())
+  varlikTuru String
+  varlikId   String
+  // Bağlı Task (KabulAdimi için), sorgu kolaylığı.
+  taskId     String?
+  // Eskalasyonla karar yetkisi kazananlar (Unit Head; Unit Head zaten onaylayıcıysa Direktör).
+  hedefIds   String[]
+  // Hesaplanan son tarih (onay bu andan sonra eskale edildi).
+  sonTarih   DateTime
+  zaman      DateTime
+
+  @@unique([varlikTuru, varlikId])
+  @@index([taskId])
+}
