@@ -1,22 +1,29 @@
-// Task panosu: kapsam sekmeleri, öncelik / Ekip filtreleri, durum sütunları (sürükle-bırak),
-// reddedilen Task'lar ve iptal edilenler.
+// Task panosu: kapsam sekmeleri, öncelik / Ekip / tür filtreleri, durum sütunları (sürükle-bırak),
+// Ekip havuzu (Bekleyen sütununda), Backlog listesi, reddedilen Task'lar ve iptal edilenler.
 import { useState, type DragEvent } from 'react';
 import { ApiHatasi } from '../api';
 import { DURUM_ADI, kucuk, ONCELIK_ADI, ONCELIK_SINIF, ONCELIKLER } from '../format';
-import { aktifAdim, durumYetkisi, gerekceAyir, izinliGecisler, sonRet, useTaskIslemleri } from '../gorev';
-import { useCokluVeri, useUygulama } from '../uygulama';
+import { aktifAdim, durumYetkisi, gerekceAyir, havuzda, izinliGecisler, sonRet, useTaskIslemleri } from '../gorev';
+import { useCokluVeri, useUygulama, useVeri } from '../uygulama';
 import { Avatar, Bos, EkipAvatar, HataKutusu, Ikon, OncelikPill, Termin, Yukleniyor } from '../ui';
-import type { DurumGecmisi, KabulZinciri, TaskDurum, TaskGorunumu, TaskOncelik } from '../types';
+import type { BacklogTask, DurumGecmisi, EkipGelenKutusu, KabulZinciri, TaskDurum, TaskGorunumu, TaskOncelik } from '../types';
 
 type Kapsam = 'tum' | 'bana' | 'actiklarim' | 'ekip';
+type Tur = '' | 'terminli' | 'backlog';
+
+/** Kabul edilmiş ama henüz bir Çalışana geçmemiş Ekip Task'ı: Bekleyen sütununda "Ekip Havuzu" olarak durur. */
+const havuzBekliyor = (t: TaskGorunumu) => havuzda(t) && t.durum === 'KABUL_EDILDI';
 
 const SUTUNLAR: Array<{ ad: string; durumlar: TaskDurum[]; renk: string; hedef?: TaskDurum; bos: string }> = [
-  { ad: 'Bekleyen', durumlar: ['TASLAK', 'KABUL_BEKLIYOR'], renk: 'var(--wait)', bos: 'Kabul bekleyen Task yok' },
+  { ad: 'Bekleyen', durumlar: ['TASLAK', 'KABUL_BEKLIYOR'], renk: 'var(--wait)', bos: 'Kabul veya delege bekleyen Task yok' },
   { ad: 'Kabul Edildi', durumlar: ['KABUL_EDILDI'], renk: 'var(--low)', bos: 'Başlanmayı bekleyen Task yok' },
   { ad: 'Devam Ediyor', durumlar: ['DEVAM_EDIYOR'], renk: 'var(--accent)', hedef: 'DEVAM_EDIYOR', bos: 'Bu sütunda Task yok' },
   { ad: 'Bloklu', durumlar: ['BLOKLU'], renk: 'var(--orange)', hedef: 'BLOKLU', bos: 'Bloklu Task yok' },
   { ad: 'Tamamlandı', durumlar: ['TAMAMLANDI'], renk: 'var(--ok)', hedef: 'TAMAMLANDI', bos: 'Bu sütunda Task yok' },
 ];
+
+const sutunda = (s: (typeof SUTUNLAR)[number], t: TaskGorunumu) =>
+  s.ad === 'Bekleyen' ? s.durumlar.includes(t.durum) || havuzBekliyor(t) : s.durumlar.includes(t.durum) && !havuzBekliyor(t);
 
 const oncelikSira = (t: TaskGorunumu) => ONCELIKLER.indexOf(t.oncelik);
 const terminSira = (t: TaskGorunumu) => (t.bitisTarihi ? new Date(t.bitisTarihi).getTime() : Infinity);
@@ -27,6 +34,10 @@ export function TaskPanosuSayfasi() {
   const [kapsam, setKapsam] = useState<Kapsam>('tum');
   const [oncelikF, setOncelikF] = useState<Set<TaskOncelik>>(new Set());
   const [ekipF, setEkipF] = useState('');
+  const [turF, setTurF] = useState<Tur>('');
+  const backlog = useVeri<BacklogTask[]>('/tasks/backlog');
+  // Havuzdaki Task'ın kime delege edildiği yalnızca yöneticinin gelen kutusunda var.
+  const kutu = useVeri<EkipGelenKutusu>(u.yonetici ? '/kabul/gelen-kutusu' : null);
   const [uzerinde, setUzerinde] = useState<string | null>(null);
   const [surukle, setSurukle] = useState<string | null>(null);
 
@@ -42,7 +53,17 @@ export function TaskPanosuSayfasi() {
     !q ||
     kucuk([t.baslik, t.aciklama ?? '', t.hariciRef ?? '', t.etiketler.join(' '), u.kisiAdi(t.requesterId), u.assigneeAdi(t), u.ekipKodu(t.ekipId)].join(' ')).includes(q);
   const ekipOf = (t: TaskGorunumu) => t.assigneeEkipId ?? t.ekipId;
-  const filtrede = (t: TaskGorunumu) => aramada(t) && kapsamda(t, kapsam) && (!oncelikF.size || oncelikF.has(t.oncelik)) && (!ekipF || ekipOf(t) === ekipF);
+  const turda = (t: TaskGorunumu) => !turF || (turF === 'backlog' ? !t.bitisTarihi : !!t.bitisTarihi);
+  const filtrede = (t: TaskGorunumu) =>
+    aramada(t) && kapsamda(t, kapsam) && (!oncelikF.size || oncelikF.has(t.oncelik)) && (!ekipF || ekipOf(t) === ekipF) && turda(t);
+  const ilerleme = (t: TaskGorunumu) => backlog.veri?.find((b) => b.id === t.id)?.ilerleme;
+  const sorumlu = (ekipId: string | null) =>
+    u.org?.unitler
+      .flatMap((x) => x.ekipler)
+      .find((e) => e.id === ekipId)
+      ?.sorumluYonetici.map((k) => (k.id === u.ben.id ? 'siz' : k.ad))
+      .join(', ');
+  const bekleyenDelegasyon = (t: TaskGorunumu) => kutu.veri?.kayitlar.find((k) => k.task.id === t.id)?.delegasyon;
 
   const liste = tum.filter(filtrede);
   const reddedilen = tum.filter((t) => t.durum === 'REDDEDILDI' && aramada(t));
@@ -70,7 +91,7 @@ export function TaskPanosuSayfasi() {
     setUzerinde(null);
     const t = tum.find((x) => x.id === e.dataTransfer.getData('text/plain'));
     setSurukle(null);
-    if (!t || sutun.durumlar.includes(t.durum)) return;
+    if (!t || sutunda(sutun, t)) return;
     const uyar = (m: string) => u.hata(new ApiHatasi('DOGRULAMA', m, 400));
     if (!sutun.hedef) return uyar(`Task “${sutun.ad}” durumuna geri alınamaz.`);
     if (t.durum === 'KABUL_BEKLIYOR' || t.durum === 'TASLAK') return uyar('Bu Task henüz kabul edilmedi. Önce kabul zinciri tamamlanmalı.');
@@ -82,6 +103,9 @@ export function TaskPanosuSayfasi() {
   const kart = (t: TaskGorunumu) => {
     const aktif = t.durum === 'KABUL_BEKLIYOR' ? aktifAdim(zincir(t)) : undefined;
     const blok = t.durum === 'BLOKLU' ? blokNedeni(t) : undefined;
+    const havuz = havuzBekliyor(t);
+    const del = havuz ? bekleyenDelegasyon(t) : undefined;
+    const il = ilerleme(t);
     const tasinabilir = durumYetkisi(u, t) === 'TAM' && !['TASLAK', 'KABUL_BEKLIYOR'].includes(t.durum);
     return (
       <button
@@ -112,6 +136,11 @@ export function TaskPanosuSayfasi() {
             Kabul bekliyor: {aktif.onaylayicilar.map((id) => (id === u.ben.id ? 'siz' : u.kisiAdi(id))).join(', ') || '—'}
           </div>
         )}
+        {havuz && (
+          <div className="hint" style={{ color: '#7FA5FF' }}>
+            {del ? `Delegasyon yanıtı bekleniyor: ${u.kisiAdi(del.calisanId)}` : `Ekip havuzu · delege bekliyor: ${sorumlu(t.assigneeEkipId) ?? 'Sorumlu yönetici'}`}
+          </div>
+        )}
         {(ekipOf(t) || t.etiketler.length > 0) && (
           <div className="card-line">
             {ekipOf(t) && <span className="tag team">{u.ekipKodu(ekipOf(t))}</span>}
@@ -120,6 +149,11 @@ export function TaskPanosuSayfasi() {
                 {x}
               </span>
             ))}
+          </div>
+        )}
+        {il && il.toplam > 0 && (
+          <div className="progress" title={`${il.tamamlanan}/${il.toplam} alt task`}>
+            <i style={{ width: `${(il.tamamlanan / il.toplam) * 100}%` }} />
           </div>
         )}
         <div className="card-foot">
@@ -179,6 +213,11 @@ export function TaskPanosuSayfasi() {
             </option>
           ))}
         </select>
+        <select className="chip" aria-label="Tür" value={turF} onChange={(e) => setTurF(e.target.value as Tur)}>
+          <option value="">Tüm türler</option>
+          <option value="terminli">Terminli</option>
+          <option value="backlog">Backlog</option>
+        </select>
         {q && (
           <span className="hint">
             “{u.arama}” araması · {liste.length} sonuç
@@ -230,10 +269,13 @@ export function TaskPanosuSayfasi() {
         </section>
       )}
 
+      {turF === 'backlog' ? (
+        <BacklogListesi veri={backlog.veri} hata={backlog.hata} filtrede={filtrede} />
+      ) : (
       <div className="board-wrap">
         <div className="board">
           {SUTUNLAR.map((s) => {
-            const kartlar = liste.filter((t) => s.durumlar.includes(t.durum)).sort((a, b) => oncelikSira(a) - oncelikSira(b) || terminSira(a) - terminSira(b));
+            const kartlar = liste.filter((t) => sutunda(s, t)).sort((a, b) => oncelikSira(a) - oncelikSira(b) || terminSira(a) - terminSira(b));
             return (
               <section
                 key={s.ad}
@@ -265,6 +307,7 @@ export function TaskPanosuSayfasi() {
           })}
         </div>
       </div>
+      )}
 
       {iptal.length > 0 && (
         <details className="fold">
@@ -291,5 +334,64 @@ export function TaskPanosuSayfasi() {
       )}
       {islem.modal}
     </>
+  );
+}
+
+/** Backlog (terminsiz, açık Task'lar): öncelik sonra yaş sıralı satırlar; sunucu `GET /api/tasks/backlog`. */
+function BacklogListesi({ veri, hata, filtrede }: { veri: BacklogTask[] | null; hata: string | null; filtrede: (t: TaskGorunumu) => boolean }) {
+  const u = useUygulama();
+  if (hata) return <HataKutusu mesaj={hata} />;
+  if (!veri) return <Yukleniyor />;
+  const liste = veri.filter(filtrede);
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>
+          {Ikon.stack} Backlog ({liste.length})
+        </h2>
+        <span className="hint">Bitiş tarihi olmayan açık Task'lar; önce öncelik, sonra en eski.</span>
+      </div>
+      {!liste.length ? (
+        <Bos>Backlog'da Task yok. Bitiş tarihi boş bırakılan Task'lar burada listelenir.</Bos>
+      ) : (
+        <div className="rows">
+          {liste.map((t) => (
+            <button key={t.id} className="row" onClick={() => u.taskAc(t.id)}>
+              <span className={`stripe p-${ONCELIK_SINIF[t.oncelik]}`} />
+              <span className="row-main">
+                <span className="row-title">{t.baslik}</span>
+                <span className="row-meta">
+                  <OncelikPill o={t.oncelik} />
+                  <span className={`st ${t.durum === 'DEVAM_EDIYOR' ? 'prog' : t.durum === 'BLOKLU' ? 'block' : havuzBekliyor(t) ? 'pool' : t.durum === 'KABUL_BEKLIYOR' ? 'wait' : ''}`}>
+                    {havuzBekliyor(t) ? 'Ekip Havuzu' : DURUM_ADI[t.durum]}
+                  </span>
+                  {(t.assigneeEkipId ?? t.ekipId) && <span className="tag team">{u.ekipKodu(t.assigneeEkipId ?? t.ekipId)}</span>}
+                  {t.etiketler.map((x) => (
+                    <span key={x} className="tag">
+                      {x}
+                    </span>
+                  ))}
+                </span>
+              </span>
+              <span className="row-side" style={{ minWidth: 150 }}>
+                {t.ilerleme.toplam > 0 ? (
+                  <span style={{ display: 'grid', gap: 4, width: 110 }} title={`${t.ilerleme.tamamlanan}/${t.ilerleme.toplam} alt task`}>
+                    <span className="hint mono">
+                      {t.ilerleme.tamamlanan}/{t.ilerleme.toplam} alt task
+                    </span>
+                    <span className="progress">
+                      <i style={{ width: `${(t.ilerleme.tamamlanan / t.ilerleme.toplam) * 100}%` }} />
+                    </span>
+                  </span>
+                ) : (
+                  <span className="hint">Alt task yok</span>
+                )}
+                {t.assigneeEkipId ? <EkipAvatar kod={u.ekipKodu(t.assigneeEkipId)} /> : <Avatar ad={u.assigneeAdi(t)} />}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

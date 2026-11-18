@@ -58,3 +58,35 @@ export interface DenetimKaydi {
   varlikId: string | null;
   veri: unknown;
 }
+
+import type { GelenKutusuKaydi as GelenKutusuKaydiSunucu, BekleyenDelegasyon as BekleyenDelegasyonSunucu } from '../server/modules/kabul';
+import type { Delegasyon as DelegasyonSunucu, Vekalet as VekaletSunucu } from '@prisma/client';
+type DelegasyonGorunumu = Jsonla<DelegasyonSunucu, 'baslangic' | 'kararZamani'>;
+export type GelenKutusuKaydi = Omit<Jsonla<GelenKutusuKaydiSunucu, 'beklemeBaslangici'>, 'task' | 'delegasyon'> & {
+  task: TaskGorunumu;
+  delegasyon: DelegasyonGorunumu | null;
+};
+export interface EkipGelenKutusu {
+  ekipler: { id: string; kod: string; ad: string }[];
+  kayitlar: GelenKutusuKaydi[];
+}
+export type BekleyenDelegasyon = Omit<Jsonla<BekleyenDelegasyonSunucu, 'baslangic'>, 'task'> & { task: TaskGorunumu };
+
+export type VekaletGorunumu = Jsonla<VekaletSunucu, 'baslangic' | 'bitis' | 'olusturma'>;
+export interface Vekaletlerim {
+  verdiklerim: VekaletGorunumu[];
+  vekiliOlduklarim: VekaletGorunumu[];
+}
+export type { VekilAdayi } from '../server/modules/vekalet';
+
+import type { TaskDetayi as TaskDetayiSunucu, TarihceKaydi as TarihceSunucu, BacklogTask as BacklogSunucu } from '../server/modules/task-detay';
+import type { AltTask as AltTaskSunucu, TaskEki as TaskEkiSunucu } from '@prisma/client';
+export type AltTaskGorunumu = Jsonla<AltTaskSunucu, 'olusturma' | 'tamamlanmaZamani'>;
+export type TaskEkiGorunumu = Jsonla<TaskEkiSunucu, 'zaman'>;
+export type TarihceKaydi = TarihceSunucu extends infer T ? (T extends { zaman: Date } ? Omit<T, 'zaman'> & { zaman: string } : never) : never;
+export interface TaskDetayi extends Omit<TaskDetayiSunucu, 'altTasklar' | 'ekler' | 'tarihce'> {
+  altTasklar: AltTaskGorunumu[];
+  ekler: TaskEkiGorunumu[];
+  tarihce: TarihceKaydi[];
+}
+export type BacklogTask = TaskGorunumu & Pick<BacklogSunucu, 'ilerleme'>;

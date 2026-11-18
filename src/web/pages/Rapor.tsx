@@ -1,7 +1,7 @@
 // Raporlar: rol kapsamındaki özet (servis katmanı hesaplar), Ekip bazlı performans ve bekleme
 // süreleri, ret raporu, Çalışan karşılaştırması (yalnızca yöneticiler).
 import { useState } from 'react';
-import { acikMi, saatSure } from '../format';
+import { acikMi, saatSure, tarihGoster } from '../format';
 import { gerekceAyir } from '../gorev';
 import { useCokluVeri, useUygulama, useVeri } from '../uygulama';
 import { Avatar, Bos, HataKutusu, Ikon, Yukleniyor } from '../ui';
@@ -9,7 +9,8 @@ import { TaskSatiri } from './GenelBakis';
 import type { RaporOzeti } from '../types';
 
 const yuzde = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
-const ekipYolu = (ekipId: string, baslangic: string) => `/rapor?ekipId=${ekipId}${baslangic ? `&baslangic=${baslangic}` : ''}`;
+const ekipYolu = (ekipId: string, tarih: string) => `/rapor?ekipId=${ekipId}${tarih ? `&${tarih}` : ''}`;
+const bugunUtc = () => new Date().toISOString().slice(0, 10);
 
 /** "Son N gün" → YYYY-MM-DD (UTC gün; bitiş = bugün dahil). Boş = tüm zamanlar. */
 function aralikBaslangici(gun: string): string {
@@ -19,17 +20,32 @@ function aralikBaslangici(gun: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-function AralikSecimi({ deger, onDegis }: { deger: string; onDegis: (v: string) => void }) {
+function AralikSecimi(p: { deger: string; onDegis: (v: string) => void; ozel: { bas: string; bit: string }; onOzel: (v: { bas: string; bit: string }) => void }) {
   return (
-    <div className="field">
-      <label htmlFor="r-aralik">Tarih aralığı (oluşturma)</label>
-      <select id="r-aralik" value={deger} onChange={(e) => onDegis(e.target.value)}>
-        <option value="">Tüm zamanlar</option>
-        <option value="7">Son 7 gün</option>
-        <option value="30">Son 30 gün</option>
-        <option value="90">Son 90 gün</option>
-      </select>
-    </div>
+    <>
+      <div className="field">
+        <label htmlFor="r-aralik">Tarih aralığı (oluşturma)</label>
+        <select id="r-aralik" value={p.deger} onChange={(e) => p.onDegis(e.target.value)}>
+          <option value="">Tüm zamanlar</option>
+          <option value="7">Son 7 gün</option>
+          <option value="30">Son 30 gün</option>
+          <option value="90">Son 90 gün</option>
+          <option value="ozel">Özel aralık</option>
+        </select>
+      </div>
+      {p.deger === 'ozel' && (
+        <>
+          <div className="field">
+            <label htmlFor="r-bas">Başlangıç</label>
+            <input id="r-bas" type="date" value={p.ozel.bas} onChange={(e) => p.onOzel({ ...p.ozel, bas: e.target.value })} />
+          </div>
+          <div className="field">
+            <label htmlFor="r-bit">Bitiş</label>
+            <input id="r-bit" type="date" value={p.ozel.bit} onChange={(e) => p.onOzel({ ...p.ozel, bit: e.target.value })} />
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -37,11 +53,16 @@ export function RaporSayfasi() {
   const u = useUygulama();
   const [filtre, setFiltre] = useState({ unitId: '', ekipId: '' });
   const [aralik, setAralik] = useState('');
-  const baslangic = aralikBaslangici(aralik);
-  const q = new URLSearchParams(Object.entries({ ...filtre, baslangic }).filter(([, v]) => v)).toString();
+  const [ozel, setOzel] = useState({ bas: '', bit: '' });
+  const baslangic = aralik === 'ozel' ? ozel.bas : aralikBaslangici(aralik);
+  const bitis = aralik === 'ozel' ? ozel.bit : '';
+  const tarihQ = new URLSearchParams(Object.entries({ baslangic, bitis }).filter(([, v]) => v)).toString();
+  const q = new URLSearchParams(Object.entries({ ...filtre, baslangic, bitis }).filter(([, v]) => v)).toString();
+  /** Bitiş geçmişteyse durum ve geciken sayıları o günün sonundaki hâlidir. */
+  const gecmisAnı = !!bitis && bitis < bugunUtc();
   const rapor = useVeri<RaporOzeti>(`/rapor${q ? `?${q}` : ''}`);
   const r = rapor.veri;
-  const ekipYollari = (r?.ekipler ?? []).map((e) => ekipYolu(e.ekipId, baslangic));
+  const ekipYollari = (r?.ekipler ?? []).map((e) => ekipYolu(e.ekipId, tarihQ));
   const ekipRaporlari = useCokluVeri<RaporOzeti>(ekipYollari);
 
   const unitler = (u.org?.unitler ?? []).filter((x) => x.yonetebilir);
@@ -50,7 +71,7 @@ export function RaporSayfasi() {
 
   const filtreler = (
     <div className="filters-bar">
-      <AralikSecimi deger={aralik} onDegis={setAralik} />
+      <AralikSecimi deger={aralik} onDegis={setAralik} ozel={ozel} onOzel={setOzel} />
       {yonetici && unitler.length > 1 && (
         <div className="field">
           <label htmlFor="r-unit">Unit</label>
@@ -77,6 +98,12 @@ export function RaporSayfasi() {
       </div>}
       <span className="hint" style={{ alignSelf: 'center' }}>
         Taslaklar hariç. Kapalı = Tamamlandı, İptal, Reddedildi.
+        {gecmisAnı && (
+          <>
+            {' '}
+            <b style={{ color: 'var(--gold)' }}>Bitiş tarihi itibarıyla:</b> durumlar ve geciken sayıları {tarihGoster(bitis, false)} gün sonundaki hâlidir.
+          </>
+        )}
       </span>
     </div>
   );
@@ -141,7 +168,7 @@ export function RaporSayfasi() {
   const ekipler = r.ekipler ?? [];
   const maxToplam = Math.max(1, ...ekipler.map((e) => e.toplam));
   const bekleme = ekipler.map((e) => {
-    const x = ekipRaporlari[ekipYolu(e.ekipId, baslangic)];
+    const x = ekipRaporlari[ekipYolu(e.ekipId, tarihQ)];
     return { e, kabul: x?.kabulBekleme?.ortSaat ?? 0, blok: x?.blokSuresi.ortSaat ?? 0, yuklendi: !!x };
   });
   const maxBekleme = Math.max(1, ...bekleme.map((b) => b.kabul + b.blok));

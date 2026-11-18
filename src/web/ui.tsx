@@ -27,6 +27,7 @@ export const Ikon = {
   bell: svg(18, 2, <><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10 20a2 2 0 0 0 4 0" /></>),
   search: svg(16, 2, <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>),
   cikis: svg(20, 2, <><path d="M14 4H5v16h9" /><path d="M10 12h10M17 8l4 4-4 4" /></>),
+  file: svg(16, 2, <><path d="M14 3H6v18h12V7z" /><path d="M14 3v4h4" /></>),
   kalkan: svg(20, 2.2, <><path d="M12 2 20 5v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z" /><circle cx="12" cy="11" r="2.5" /></>),
   // Tile ikonları
   tShield: svg(24, 0, <path d="M12 2 20 5v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z" />, 'currentColor'),

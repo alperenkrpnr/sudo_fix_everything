@@ -50,7 +50,7 @@ export function GenelBakisSayfasi() {
   const ilgili = u.yonetici ? tum : tum.filter(benimle);
   const acik = ilgili.filter(acikMi);
   const geciken = acik.filter(gecikti).length;
-  const onaySayisi = onay.kabuller.length + onay.davetler.length + onay.reddedilenler.length;
+  const onaySayisi = onay.kabuller.length + onay.delegasyonlar.length + onay.havuzSayisi + onay.davetler.length + onay.reddedilenler.length;
 
   // Son 7 gün: açılan (oluşturma) ve tamamlanan (Tamamlandı Task'ların son güncellemesi).
   const gunler = [...Array(7)].map((_, i) => {
@@ -247,7 +247,15 @@ export function GenelBakisSayfasi() {
               ))}
               {onay.kabuller.length < 2 && onay.davetler.slice(0, 2 - onay.kabuller.length).map((d) => <DavetKarti key={d.id} is={d} />)}
               {onay.kabuller.length + onay.davetler.length === 0 && (
-                <p className="hint">{onay.reddedilenler.length} reddedilen Task'ınız yeniden atama veya iptal kararı bekliyor.</p>
+                <p className="hint">
+                  {[
+                    onay.delegasyonlar.length && `${onay.delegasyonlar.length} Task size delege edildi, yanıtınız bekleniyor.`,
+                    onay.havuzSayisi && `${onay.havuzSayisi} Ekip Task'ı delege edilmeyi bekliyor.`,
+                    onay.reddedilenler.length && `${onay.reddedilenler.length} reddedilen Task'ınız yeniden atama veya iptal kararı bekliyor.`,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                </p>
               )}
             </section>
           )}

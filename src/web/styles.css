@@ -241,6 +241,28 @@ details.fold[open] summary{margin-bottom:10px}
 .banner.wait{background:var(--gold-soft);border-color:rgba(245,197,24,.35)} .banner.wait svg{color:var(--gold)}
 .banner.rej{background:var(--crit-soft);border-color:rgba(239,83,80,.35)} .banner.rej svg{color:var(--crit)}
 .banner.info{background:var(--accent-soft);border-color:rgba(74,125,247,.35)} .banner.info svg{color:var(--accent)}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent)}
+.checks{display:grid;gap:2px;margin:0;padding:0;list-style:none}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:7px;cursor:pointer}
+.checks label:hover{background:var(--raised)}
+.checks input{accent-color:var(--accent-btn);margin-top:4px}
+.checks input:checked + span{color:var(--muted);text-decoration:line-through}
+.files{display:grid;gap:7px}
+.file{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:14px;background:var(--sunk);width:100%;text-align:left}
+button.file:hover{border-color:#34466D}
+.file .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file.add{border-style:dashed;cursor:pointer;color:var(--muted)}
+.comments{display:grid;gap:12px}
+.cmt{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;font-size:14px}
+.cmt b{font-weight:700;margin-right:6px}
+.cmt .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.chips-edit{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag .x{border:0;background:none;color:var(--faint);padding:0 0 0 4px;font-size:12px;line-height:1}
+.tag .x:hover{color:var(--crit)}
+.notif .ntype{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:800;margin-left:8px}
+.ntype.esc{color:var(--orange)} .ntype.late{color:var(--crit)} .ntype.soon{color:var(--wait)} .ntype.vek{color:var(--cyan)} .ntype.del{color:#7FA5FF}
+.notif.late{box-shadow:inset 3px 0 0 var(--crit)} .notif.soon{box-shadow:inset 3px 0 0 var(--wait)} .notif.esc{box-shadow:inset 3px 0 0 var(--orange)}
 .timeline{margin:0 0 0 6px;padding:0;list-style:none;border-left:2px solid var(--line)}
 .timeline li{position:relative;padding:0 0 12px 18px;font-size:13.5px;color:var(--muted)}
 .timeline li::before{content:"";position:absolute;left:-5px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--gold)}

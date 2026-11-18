@@ -13,6 +13,7 @@ import { EtkinlikSayfasi } from './pages/Etkinlik';
 import { RaporSayfasi } from './pages/Rapor';
 import { OrganizasyonSayfasi } from './pages/Organizasyon';
 import { EntegrasyonSayfasi } from './pages/Entegrasyon';
+import { VekaletModal } from './pages/Vekalet';
 import logo from './assets/logo.png';
 import type { MockKullanici, Profil, TaskGorunumu } from './types';
 
@@ -322,6 +323,8 @@ function ProfilModal({ onKapat, onKaydedildi }: { onKapat: () => void; onKaydedi
   const [ad, setAd] = useState(u.ben.ad);
   const [unvan, setUnvan] = useState(u.ben.unvan ?? '');
   const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [vekalet, setVekalet] = useState(false);
+  if (vekalet) return <VekaletModal onKapat={() => setVekalet(false)} />;
   return (
     <Modal baslik="Profilim" alt={u.ben.eposta} onKapat={onKapat}>
       <form
@@ -349,6 +352,11 @@ function ProfilModal({ onKapat, onKaydedildi }: { onKapat: () => void; onKaydedi
           <input id="p-unvan" value={unvan} onChange={(e) => setUnvan(e.target.value)} />
         </div>
         <div className="appr-actions" style={{ justifyContent: 'flex-end' }}>
+          {u.yonetici && (
+            <button type="button" className="btn" style={{ marginRight: 'auto' }} onClick={() => setVekalet(true)}>
+              Vekaletlerim
+            </button>
+          )}
           <button type="button" className="btn" onClick={onKapat}>
             Vazgeç
           </button>

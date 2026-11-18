@@ -6,6 +6,17 @@ import { useUygulama, useVeri } from '../uygulama';
 import { Bos, Drawer } from '../ui';
 import type { BildirimGorunumu } from '../types';
 
+/** Ayrı görünen bildirim türleri: etiket + vurgu sınıfı. */
+const TUR_GORUNUMU: Record<string, { etiket: string; sinif: string }> = {
+  TERMIN_GECTI: { etiket: 'Termin geçti', sinif: 'late' },
+  TERMIN_YAKLASIYOR: { etiket: 'Termin yaklaşıyor', sinif: 'soon' },
+  ESKALASYON: { etiket: 'Eskalasyon', sinif: 'esc' },
+  VEKALET: { etiket: 'Vekalet', sinif: 'vek' },
+  TASK_DELEGASYON: { etiket: 'Delegasyon', sinif: 'del' },
+  TASK_DELEGASYON_KABUL: { etiket: 'Delegasyon', sinif: 'del' },
+  TASK_HAVUZA_DONUS: { etiket: 'Ekip havuzu', sinif: 'del' },
+};
+
 export function BildirimPaneli({ onKapat, onYenile }: { onKapat: () => void; onYenile: () => Promise<unknown> }) {
   const u = useUygulama();
   const [mesgul, setMesgul] = useState(false);
@@ -22,6 +33,7 @@ export function BildirimPaneli({ onKapat, onYenile }: { onKapat: () => void; onY
     }
     await onYenile();
     if (b.varlikTuru === 'Task' && b.varlikId) u.taskAc(b.varlikId);
+    else if (b.varlikTuru === 'Vekalet') u.git('onaylar');
     else if (b.varlikTuru === 'Etkinlik' || b.varlikTuru === 'Duyuru' || b.varlikTuru === 'Yetkinlik') u.git('etkinlikler');
   };
 
@@ -52,18 +64,23 @@ export function BildirimPaneli({ onKapat, onYenile }: { onKapat: () => void; onY
       }
     >
       <div>
-        {liste.map((b) => (
-          <button key={b.id} className={`notif ${b.okundu ? '' : 'unread'}`} onClick={() => ac(b)}>
-            <span className="nd" />
-            <span>
-              <time>
-                {tarihGoster(b.olusturma)}
-                {!b.okundu && <span className="sr-only"> · okunmamış</span>}
-              </time>
-              {b.mesaj}
-            </span>
-          </button>
-        ))}
+        {liste.map((b) => {
+          const g = TUR_GORUNUMU[b.tur];
+          const vurgu = g && ['late', 'soon', 'esc'].includes(g.sinif) ? g.sinif : '';
+          return (
+            <button key={b.id} className={`notif ${b.okundu ? '' : 'unread'} ${vurgu}`} onClick={() => ac(b)}>
+              <span className="nd" />
+              <span>
+                <time>
+                  {tarihGoster(b.olusturma)}
+                  {g && <span className={`ntype ${g.sinif}`}>{g.etiket}</span>}
+                  {!b.okundu && <span className="sr-only"> · okunmamış</span>}
+                </time>
+                {b.mesaj}
+              </span>
+            </button>
+          );
+        })}
         {!liste.length && <Bos>Bildirim yok. Size Task atandığında, kabul/ret kararı verildiğinde veya yeni Duyuru yayınlandığında burada görünür.</Bos>}
       </div>
       <Tercihler />
